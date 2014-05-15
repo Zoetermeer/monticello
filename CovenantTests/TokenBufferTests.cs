@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Covenant.Parsing;
+using Monticello.Parsing;
 
-namespace CovenantTests
+namespace MonticelloTests
 {
     [TestClass]
     public class TokenBufferTests

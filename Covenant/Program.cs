@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Covenant.Parsing;
+using Monticello.Parsing;
 
-namespace Covenant
+namespace Monticello
 {
     public class NumericLiteralExp
     {

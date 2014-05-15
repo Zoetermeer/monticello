@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Covenant.Parsing
+namespace Monticello.Parsing
 {
     public class Parser
     {

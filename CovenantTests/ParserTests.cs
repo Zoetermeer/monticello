@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace CovenantTests
+namespace MonticelloTests
 {
     [TestClass]
     public class ParserTests

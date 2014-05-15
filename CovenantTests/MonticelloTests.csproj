@@ -56,9 +56,9 @@
     <Compile Include="TokenBufferTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Covenant\Covenant.csproj">
+    <ProjectReference Include="..\Covenant\Monticello.csproj">
       <Project>{2aa6856c-bb94-49aa-93fb-1a74c0cb3e23}</Project>
-      <Name>Covenant</Name>
+      <Name>Monticello</Name>
     </ProjectReference>
   </ItemGroup>
   <Choose>
