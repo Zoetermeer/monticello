@@ -12,7 +12,7 @@ namespace Monticello.Parsing {
         }
 
         public override char? StartChar { get { return null; } }
-        private Regex simpleLit = new Regex(@"\G(?(\\)\\(""|''|\\|0|a|b|f|n|r|t|v)|[^\\]*)*""", RegexOptions.Compiled);
+        private Regex simpleLit = new Regex(@"\G""(?(\\)\\(""|''|\\|0|a|b|f|n|r|t|v)|[^\\""]*)*""", RegexOptions.Compiled);
 
         public override bool IsPossibleStartChar(char c)
         {

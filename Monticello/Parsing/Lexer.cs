@@ -55,6 +55,8 @@ namespace Monticello.Parsing
             table.Add("!", Sym.Not);
             table.Add("{", Sym.OpenBrace);
             table.Add("}", Sym.CloseBrace);
+            table.Add("(", Sym.OpenParen);
+            table.Add(")", Sym.CloseParen);
             table.Add("abstract", Sym.KwAbstract);
             table.Add("as", Sym.KwAs);
             table.Add("base", Sym.KwBase);
@@ -233,7 +235,7 @@ namespace Monticello.Parsing
             }
 
             //No match, error 
-            throw new RecognitionException(this.Line, this.Col);
+            throw new RecognitionException(this.Line, this.Col, p.GetValueOrDefault());
         }
     }
 }

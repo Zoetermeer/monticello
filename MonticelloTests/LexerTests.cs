@@ -267,5 +267,42 @@ namespace MonticelloTests
             Assert.AreEqual(Sym.StringLiteral, tok.Sym);
             Assert.AreEqual(@"""hello \""james\"" swaine""", tok.Value);
         }
+
+        [TestMethod]
+        public void TestLexing3()
+        {
+            string input =
+                @"namespace Foo {
+                    public class Bar {
+                        public Bar() { 
+                            Console.WriteLine(""bar ctor""); 
+                        }
+                    }
+                  }";
+
+            AssertSymsMatch(input,
+                Sym.KwNamespace,
+                Sym.Id,
+                Sym.OpenBrace,
+                Sym.KwPublic,
+                Sym.KwClass,
+                Sym.Id,
+                Sym.OpenBrace,
+                Sym.KwPublic,
+                Sym.Id,
+                Sym.OpenParen,
+                Sym.CloseParen,
+                Sym.OpenBrace,
+                Sym.Id,
+                Sym.Dot,
+                Sym.Id,
+                Sym.OpenParen,
+                Sym.StringLiteral,
+                Sym.CloseParen,
+                Sym.Semicolon,
+                Sym.CloseBrace,
+                Sym.CloseBrace,
+                Sym.CloseBrace);
+        }
     }
 }
