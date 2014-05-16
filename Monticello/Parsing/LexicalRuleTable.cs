@@ -38,6 +38,11 @@ namespace Monticello.Parsing
             rulesForStartChar.Sort();
         }
 
+        public void Add(string pat, Sym sym)
+        {
+            Add(new LexicalRule(pat, sym));
+        }
+
         public IEnumerable<LexicalRule> RulesForStartChar(char c)
         {
             if (rules.ContainsKey(c))
