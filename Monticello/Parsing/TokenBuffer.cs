@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Monticello.Parsing
 {
-    public class TokenBuffer
+    public class TokenBuffer : ICanLookahead
     {
         private Lexer lexer;
         private List<Token> buf = new List<Token>();
@@ -48,7 +48,7 @@ namespace Monticello.Parsing
 
                     buf.Add(t);
                 }
-                
+
             }
 
             return buf[(pos++) - 1];
@@ -68,22 +68,6 @@ namespace Monticello.Parsing
             sb.Append("} ");
             sb.AppendFormat("pos = {0}", this.pos);
             return sb.ToString();
-        }
-    }
-
-    public class LookaheadFrame : IDisposable
-    {
-        private TokenBuffer buf;
-
-        public LookaheadFrame(TokenBuffer buf)
-        {
-            this.buf = buf;
-            buf.PushMark();
-        }
-
-        public void Dispose()
-        {
-            buf.PopMark();
         }
     }
 }

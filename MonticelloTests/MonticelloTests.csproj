@@ -6,8 +6,8 @@
     <ProjectGuid>{48E76D33-3237-4C7B-B432-DCA61A901753}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CovenantTests</RootNamespace>
-    <AssemblyName>CovenantTests</AssemblyName>
+    <RootNamespace>MonticelloTests</RootNamespace>
+    <AssemblyName>MonticelloTests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -54,9 +54,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ParserTests.cs" />
     <Compile Include="TokenBufferTests.cs" />
+    <Compile Include="LexicalRulesTests.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Covenant\Monticello.csproj">
+    <ProjectReference Include="..\Monticello\Monticello.csproj">
       <Project>{2aa6856c-bb94-49aa-93fb-1a74c0cb3e23}</Project>
       <Name>Monticello</Name>
     </ProjectReference>

@@ -14,6 +14,29 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestNextChar()
+        {
+            var lexer = new Lexer("foo bar");
+            Assert.AreEqual('f', lexer.NextChar());
+            Assert.AreEqual('o', lexer.NextChar());
+            Assert.AreEqual('o', lexer.NextChar());
+
+            lexer.SkipWs();
+            Assert.AreEqual('b', lexer.NextChar());
+        }
+
+        [TestMethod]
+        public void TestPeek()
+        {
+            var lexer = new Lexer("fot bar ;;++=");
+            Assert.AreEqual('f', lexer.Peek());
+            Assert.AreEqual('f', lexer.Peek());
+            lexer.NextChar();
+            Assert.AreEqual('o', lexer.Peek());
+            Assert.AreEqual('o', lexer.Peek());
+        }
+
+        [TestMethod]
         public void TestEof()
         {
             var lexer = new Lexer("");
@@ -106,6 +129,24 @@ namespace MonticelloTests
 
             t = lexer.Read();
             Assert.AreEqual(Sym.Semicolon, t.Sym);
+        }
+
+        [TestMethod]
+        public void TestDelimitsToks2()
+        {
+            var lexer = new Lexer(".;+");
+            var t = lexer.Read();
+            Assert.AreEqual(Sym.Dot, t.Sym);
+            t = lexer.Read();
+            Assert.AreEqual(Sym.Semicolon, t.Sym);
+            Assert.AreEqual('+', lexer.Peek());
+            t = lexer.Read();
+            Assert.AreEqual(Sym.Plus, t.Sym);
+
+            t = lexer.Read();
+            Assert.AreEqual(Sym.Eof, t.Sym);
+            t = lexer.Read();
+            Assert.AreEqual(Sym.Eof, t.Sym);
         }
     }
 }
