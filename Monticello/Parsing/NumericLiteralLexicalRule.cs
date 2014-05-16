@@ -28,8 +28,6 @@ namespace Monticello.Parsing {
             return c == StartChar || char.IsDigit(c);
         }
 
-        //TODO: Real-literal reading isn't feature-complete
-        //TODO: Hexadecimal integer literals
         public override Token Match(Lexer lexer)
         {
             var tok = new Token() { Line = lexer.Line, Col = lexer.Col };

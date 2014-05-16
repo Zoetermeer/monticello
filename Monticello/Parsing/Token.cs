@@ -14,6 +14,11 @@ namespace Monticello.Parsing
         public int Col { get; set; }
         public string Value { get; set; }
 
+        public bool Is(Sym expected)
+        {
+            return this.Sym == expected;
+        }
+
         public override string ToString()
         {
             return Sym.ToString();

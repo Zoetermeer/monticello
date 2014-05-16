@@ -13,6 +13,7 @@ namespace Monticello.Parsing
         private int pos = 1;
         private Stack<int> marks = new Stack<int>();
         private bool atEof = false;
+        private Token lastOne;
 
         public TokenBuffer(Lexer lexer)
         {
@@ -34,6 +35,21 @@ namespace Monticello.Parsing
             pos = marks.Pop();
         }
 
+        public Token Peek()
+        {
+            using (new LookaheadFrame(this)) {
+                return Next();
+            }
+        }
+
+        public Token LastOne()
+        {
+            if (atEof)
+                return buf.Last();
+
+            return lastOne;
+        }
+
         public Token Next()
         {
             if (pos > buf.Count)
@@ -51,7 +67,9 @@ namespace Monticello.Parsing
 
             }
 
-            return buf[(pos++) - 1];
+            var tok = buf[(pos++) - 1];
+            lastOne = tok;
+            return tok;
         }
 
         public override string ToString()

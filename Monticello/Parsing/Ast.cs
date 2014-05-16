@@ -42,18 +42,18 @@ namespace Monticello.Parsing
 
     public abstract class UsingDirective : AstNode
     {
-
+        
     }
 
     public class UsingNamespaceDirective : UsingDirective
     {
-        public IdExp NamespaceName { get; set; }
+        public QualifiedIdExp NamespaceName { get; set; }
     }
 
     public class UsingAliasDirective : UsingDirective
     {
-        public IdExp Ident { get; set; }
-        public IdExp NamespaceOrTypeName { get; set; }
+        public IdExp Alias { get; set; }
+        public QualifiedIdExp NamespaceOrTypeName { get; set; }
     }
 
     public abstract class Exp : AstNode
@@ -61,9 +61,20 @@ namespace Monticello.Parsing
 
     }
 
-    public class IdExp : Exp
-    {
-        public string Value { get; set; }
+    public class IdExp : Exp {
+        public IdExp() { }
+        public IdExp(Token spelling)
+        {
+            this.Spelling = spelling;
+        }
+
+        public Token Spelling { get; set; }
+    }
+
+    public class QualifiedIdExp : Exp {
+        private List<IdExp> parts = new List<IdExp>();
+
+        public List<IdExp> Parts { get { return parts; } }
     }
 
     public class IntLiteralExp : Exp
