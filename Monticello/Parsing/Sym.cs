@@ -4,7 +4,8 @@ public enum Sym
 {
     Id,
     IntLiteral,
-    FloatLiteral,
+    HexIntLiteral, 
+    RealLiteral,
     StringLiteral,
     CharLiteral,
     KwReturn,

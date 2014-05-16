@@ -76,6 +76,11 @@ namespace Monticello.Parsing
             return input[pos++];
         }
 
+        public void Advance(int chars)
+        {
+            pos += chars;
+        }
+
         public void PushMark()
         {
             markPos = pos;

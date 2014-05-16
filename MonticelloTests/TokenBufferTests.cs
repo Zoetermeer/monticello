@@ -35,7 +35,7 @@ namespace MonticelloTests
         [TestMethod]
         public void TokBufferTest1()
         {
-            var ml = new MockLexer(Sym.IntLiteral, Sym.KwInt, Sym.FloatLiteral);
+            var ml = new MockLexer(Sym.IntLiteral, Sym.KwInt, Sym.RealLiteral);
             var b = new TokenBuffer(ml);
 
             var t = b.Next();
@@ -43,13 +43,13 @@ namespace MonticelloTests
             t = b.Next();
             Assert.AreEqual(Sym.KwInt, t.Sym);
             t = b.Next();
-            Assert.AreEqual(Sym.FloatLiteral, t.Sym);
+            Assert.AreEqual(Sym.RealLiteral, t.Sym);
         }
 
         [TestMethod]
         public void TokBufferTest2()
         {
-            var ml = new MockLexer(Sym.IntLiteral, Sym.KwInt, Sym.FloatLiteral);
+            var ml = new MockLexer(Sym.IntLiteral, Sym.KwInt, Sym.RealLiteral);
             var b = new TokenBuffer(ml);
 
             var t = b.Next();
@@ -59,13 +59,13 @@ namespace MonticelloTests
                 t = b.Next();
                 Assert.AreEqual(Sym.KwInt, t.Sym);
                 t = b.Next();
-                Assert.AreEqual(Sym.FloatLiteral, t.Sym);
+                Assert.AreEqual(Sym.RealLiteral, t.Sym);
             }
 
             t = b.Next();
             Assert.AreEqual(Sym.KwInt, t.Sym);
             t = b.Next();
-            Assert.AreEqual(Sym.FloatLiteral, t.Sym);
+            Assert.AreEqual(Sym.RealLiteral, t.Sym);
         }
 
         [TestMethod]

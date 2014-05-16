@@ -73,12 +73,37 @@ namespace MonticelloTests
         }
 
         [TestMethod]
-        public void TestFloatLiteral()
+        public void TestHexIntLiteral()
+        {
+            var lexer = new Lexer("0x43334534abced");
+            var t = lexer.Read();
+            Assert.AreEqual(Sym.HexIntLiteral, t.Sym);
+            Assert.AreEqual("0x43334534abced", t.Value);
+        }
+
+        [TestMethod]
+        public void TestFloatLiteral1()
         {
             var lexer = new Lexer("42.3");
             var t = lexer.Read();
-            Assert.AreEqual(Sym.FloatLiteral, t.Sym);
+            Assert.AreEqual(Sym.RealLiteral, t.Sym);
             Assert.AreEqual("42.3", t.Value);
+        }
+
+        [TestMethod]
+        public void TestFloatLiteral2()
+        {
+            var lexer = new Lexer("43f 465e-1 78.01e-22M");
+            var t = lexer.Read();
+            Assert.AreEqual(Sym.RealLiteral, t.Sym);
+            t = lexer.Read();
+            Assert.AreEqual(Sym.RealLiteral, t.Sym);
+            t = lexer.Read();
+            Assert.AreEqual(Sym.RealLiteral, t.Sym);
+            Assert.AreEqual("78.01e-22M", t.Value);
+
+            t = lexer.Read();
+            Assert.AreEqual(Sym.Eof, t.Sym);
         }
 
         [TestMethod]
@@ -91,7 +116,7 @@ namespace MonticelloTests
             Assert.AreEqual(0, t.Col);
 
             t = lexer.Read();
-            Assert.AreEqual(Sym.FloatLiteral, t.Sym);
+            Assert.AreEqual(Sym.RealLiteral, t.Sym);
             Assert.AreEqual("45.6", t.Value);
             Assert.AreEqual(3, t.Col);
         }
