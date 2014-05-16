@@ -53,6 +53,8 @@ namespace Monticello.Parsing
             table.Add("==", Sym.EqualEqual);
             table.Add("!=", Sym.NotEqual);
             table.Add("!", Sym.Not);
+            table.Add("{", Sym.OpenBrace);
+            table.Add("}", Sym.CloseBrace);
             table.Add("abstract", Sym.KwAbstract);
             table.Add("as", Sym.KwAs);
             table.Add("base", Sym.KwBase);

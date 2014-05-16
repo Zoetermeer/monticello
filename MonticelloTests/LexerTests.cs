@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Monticello.Parsing;
 
@@ -11,6 +12,34 @@ namespace MonticelloTests
         {
             var lexer = new Lexer(input);
             return lexer.Read();
+        }
+
+        private Sym[] ReadToEnd(string input)
+        {
+            var lexer = new Lexer(input);
+            var ls = new List<Sym>();
+            while (lexer.CanRead) {
+                ls.Add(lexer.Read().Sym);
+            }
+
+            return ls.ToArray();
+        }
+
+        private void AssertListsEqual<T>(T[] exp, T[] actual)
+        {
+            if (exp.Length != actual.Length) {
+                Assert.Fail("Expected {0}, but got {1}", exp, actual);
+            }
+
+            for (int i = 0; i < exp.Length; i++) {
+                if (!exp[i].Equals(actual[i]))
+                    Assert.Fail("Expected {0}, but got {1}", exp, actual);
+            }
+        }
+
+        private void AssertSymsMatch(string input, params Sym[] syms)
+        {
+            AssertListsEqual(syms, ReadToEnd(input));
         }
 
         [TestMethod]
@@ -172,6 +201,22 @@ namespace MonticelloTests
             Assert.AreEqual(Sym.Eof, t.Sym);
             t = lexer.Read();
             Assert.AreEqual(Sym.Eof, t.Sym);
+        }
+
+        [TestMethod]
+        public void TestLexing1()
+        {
+            string input = "public class Foo { private int bar; }";
+            AssertSymsMatch(input,
+                Sym.KwPublic,
+                Sym.KwClass,
+                Sym.Id,
+                Sym.OpenBrace,
+                Sym.KwPrivate,
+                Sym.KwInt,
+                Sym.Id,
+                Sym.Semicolon,
+                Sym.CloseBrace);
         }
     }
 }
