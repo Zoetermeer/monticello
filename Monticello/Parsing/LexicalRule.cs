@@ -116,7 +116,7 @@ namespace Monticello.Parsing {
 
         }
 
-        public override char? StartChar { get { return '.'; } }
+        public override char? StartChar { get { return null; } }
 
         public override bool IsPossibleStartChar(char c)
         {
