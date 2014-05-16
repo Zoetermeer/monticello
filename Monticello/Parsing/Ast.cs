@@ -75,6 +75,19 @@ namespace Monticello.Parsing
         private List<IdExp> parts = new List<IdExp>();
 
         public List<IdExp> Parts { get { return parts; } }
+
+        public bool PartsAre(params string[] parts)
+        {
+            if (Parts.Count != parts.Length)
+                return false;
+
+            for (int i = 0; i < Parts.Count; ++i) {
+                if (Parts[i].Spelling.Value.CompareTo(parts[i]) != 0)
+                    return false;
+            }
+
+            return true;
+        }
     }
 
     public class IntLiteralExp : Exp
