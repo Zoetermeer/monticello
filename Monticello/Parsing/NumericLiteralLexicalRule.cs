@@ -36,7 +36,13 @@ namespace Monticello.Parsing {
             string rem = lexer.RemainingInput;
             bool isMatch = false;
 
-            Match match = null;
+            Match match = hexIntLit.Match(rem);
+            if (match.Success) {
+                tok.Value = match.Value;
+                tok.Sym = Sym.HexIntLiteral;
+                isMatch = true;
+            }
+
             foreach (var re in realRes) {
                 match = re.Match(rem);
                 if (match.Success) {
@@ -52,15 +58,6 @@ namespace Monticello.Parsing {
                 if (match.Success) {
                     tok.Value = match.Value;
                     tok.Sym = Sym.IntLiteral;
-                    isMatch = true;
-                }
-            }
-
-            if (!isMatch) {
-                match = hexIntLit.Match(rem);
-                if (match.Success) {
-                    tok.Value = match.Value;
-                    tok.Sym = Sym.HexIntLiteral;
                     isMatch = true;
                 }
             }
