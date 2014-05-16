@@ -16,7 +16,7 @@ namespace Monticello.Parsing {
 
         private static bool IsIdentifierStartChar(char c)
         {
-            return char.IsLetter(c) || c == '_';
+            return char.IsLetter(c) || c == '_' || c == '@';
         }
 
         private static bool IsIdentifierPartChar(char? c)

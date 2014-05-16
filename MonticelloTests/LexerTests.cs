@@ -218,5 +218,54 @@ namespace MonticelloTests
                 Sym.Semicolon,
                 Sym.CloseBrace);
         }
+
+        [TestMethod]
+        public void TestLexing2()
+        {
+            string input = "protected class Bar { private string name = \"james \"; }";
+            AssertSymsMatch(input,
+                Sym.KwProtected,
+                Sym.KwClass,
+                Sym.Id,
+                Sym.OpenBrace,
+                Sym.KwPrivate,
+                Sym.KwString,
+                Sym.Id,
+                Sym.AssignEqual,
+                Sym.StringLiteral,
+                Sym.Semicolon,
+                Sym.CloseBrace);
+        }
+
+        [TestMethod]
+        public void TestEscapedIds()
+        {
+            string input = "var @int = 3;";
+            AssertSymsMatch(input,
+                Sym.KwVar,
+                Sym.Id,
+                Sym.AssignEqual,
+                Sym.IntLiteral,
+                Sym.Semicolon);
+        }
+
+        [TestMethod]
+        public void TestStringLiteral1()
+        {
+            string input = @" ""hello world"" ";
+            var tok = new Lexer(input).Read();
+
+            Assert.AreEqual(Sym.StringLiteral, tok.Sym);
+            Assert.AreEqual(@"""hello world""", tok.Value);
+        }
+
+        [TestMethod]
+        public void TestStringLiteral2()
+        {
+            string input = @" ""hello \""james\"" swaine"" ";
+            var tok = new Lexer(input).Read();
+            Assert.AreEqual(Sym.StringLiteral, tok.Sym);
+            Assert.AreEqual(@"""hello \""james\"" swaine""", tok.Value);
+        }
     }
 }

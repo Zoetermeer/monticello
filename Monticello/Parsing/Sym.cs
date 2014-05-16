@@ -81,6 +81,7 @@ public enum Sym
     KwUnsafe, 
     KwUshort, 
     KwUsing, 
+    KwVar, 
     KwVirtual, 
     KwVoid, 
     KwVolatile, 

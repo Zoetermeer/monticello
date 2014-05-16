@@ -51,6 +51,7 @@
     <Compile Include="Parsing\NumericLiteralLexicalRule.cs" />
     <Compile Include="Parsing\Parser.cs" />
     <Compile Include="Parsing\RecognitionException.cs" />
+    <Compile Include="Parsing\StringLiteralLexicalRule.cs" />
     <Compile Include="Parsing\Sym.cs" />
     <Compile Include="Parsing\Token.cs" />
     <Compile Include="Parsing\TokenBuffer.cs" />

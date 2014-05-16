@@ -128,10 +128,12 @@ namespace Monticello.Parsing
             table.Add("unsafe", Sym.KwUnsafe);
             table.Add("ushort", Sym.KwUshort);
             table.Add("using", Sym.KwUsing);
+            table.Add("var", Sym.KwVar);
             table.Add("virtual", Sym.KwVirtual);
             table.Add("void", Sym.KwVoid);
             table.Add("volatile", Sym.KwVolatile);
             table.Add("while", Sym.KwWhile);
+            table.Add(new StringLiteralLexicalRule());
             table.Add(new NumericLiteralLexicalRule());
             table.Add(new IdLexicalRule());
         }

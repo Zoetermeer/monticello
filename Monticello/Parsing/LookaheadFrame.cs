@@ -5,6 +5,7 @@ namespace Monticello.Parsing
     public class LookaheadFrame : IDisposable
     {
         private ICanLookahead buf;
+        private bool committed = false;
 
         public LookaheadFrame(ICanLookahead buf)
         {
@@ -12,9 +13,15 @@ namespace Monticello.Parsing
             buf.PushMark();
         }
 
+        public void Commit()
+        {
+            committed = true;
+        }
+
         public void Dispose()
         {
-            buf.PopMark();
+            if (!committed)
+                buf.PopMark();
         }
     }
 }
