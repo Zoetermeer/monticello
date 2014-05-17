@@ -8,12 +8,60 @@ namespace Monticello.Parsing
 {
     public class Parser
     {
-        private static bool Expect(TokenBuffer buf, Sym expected)
+        private string input;
+        private TokenBuffer buf;
+        private ParseResult result;
+
+        public Parser(string input)
         {
-            return buf.Next().Is(expected);
+            this.input = input;
+            this.buf = new TokenBuffer(new Lexer(input));
+            this.result = new ParseResult();
         }
 
-        private static bool Accept(TokenBuffer buf, Sym expected)
+        private bool Expect<T>(
+            Func<T> parser, 
+            string errMsg, 
+            out T ast)
+            where T : AstNode
+        {
+            ast = parser();
+            if (null == ast) {
+                result.Error(errMsg, buf);
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool Expect(Sym expected)
+        {
+            Token t;
+            return Expect(expected, out t);
+        }
+
+        private bool Expect(Sym expected, out Token tok)
+        {
+            tok = buf.Next();
+            bool match = tok.Is(expected);
+            if (!match) {
+                result.Error(string.Format("Expected {0}", expected), tok);
+            }
+
+            return match;
+        }
+
+        private bool Accept<T>(Func<T> parser, out T ast) 
+            where T : AstNode
+        {
+            ast = parser();
+            if (null == ast)
+                return false;
+
+            return true;
+        }
+
+        private bool Accept(Sym expected)
         {
             if (buf.Peek().Is(expected)) {
                 buf.Next();
@@ -23,15 +71,25 @@ namespace Monticello.Parsing
             return false;
         }
 
-        public static CompilationUnit Parse(string input)
+        private bool Accept(Sym expected, out Token tok)
         {
-            var result = new ParseResult();
-            return ParseCompilationUnit(new TokenBuffer(new Lexer(input)), result);
+            if (buf.Peek().Is(expected)) {
+                tok = buf.Next();
+                return true;
+            }
+
+            tok = null;
+            return false;
         }
 
-        public static CompilationUnit ParseCompilationUnit(TokenBuffer buf, ParseResult result)
+        public static CompilationUnit Parse(string input)
         {
-            var usings = ParseUsingDirectives(buf, result);
+            return new Parser(input).ParseCompilationUnit();
+        }
+
+        public CompilationUnit ParseCompilationUnit()
+        {
+            var usings = ParseUsingDirectives();
             //var decls = ParseNamespaceMemberDecls(buf, result);
 
             var cu = new CompilationUnit();
@@ -41,28 +99,41 @@ namespace Monticello.Parsing
             return cu;
         }
 
-        public static List<UsingDirective> ParseUsingDirectives(TokenBuffer buf, ParseResult result)
+        /// <summary>
+        /// using-directives := (using-directive)*
+        /// using-directive :=
+        ///     using-alias-directive
+        ///     using-namespace-directive
+        ///     
+        /// using-alias-directive := using id = qualified-id ;
+        /// using-namespace-directive := using qualified-id ;
+        /// </summary>
+        /// <param name="buf"></param>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        public List<UsingDirective> ParseUsingDirectives()
         {
             var usings = new List<UsingDirective>();
             while (true) {
                 using (var la = new LookaheadFrame(buf)) {
-                    if (Accept(buf, Sym.KwUsing)) {
-                        var qid = ParseQualifiedId(buf, result);
+                    Token start;
+                    if (Accept(Sym.KwUsing, out start)) {
+                        var qid = ParseQualifiedId();
                         if (null != qid) {
                             //If the qualified-id has only a single part, 
                             //this can be a using-alias directive; otherwise, 
                             //must be a using-namespace 
                             if (qid.Parts.Count == 1) {
-                                if (Accept(buf, Sym.AssignEqual)) {
+                                if (Accept(Sym.AssignEqual)) {
                                     //Using-alias directive
-                                    var rhs = ParseQualifiedId(buf, result);
+                                    var rhs = ParseQualifiedId();
                                     if (null == rhs) {
                                         result.Error("Expected namespace or type name", buf);
                                         break;
                                     }
 
-                                    if (Accept(buf, Sym.Semicolon)) {
-                                        var uad = new UsingAliasDirective();
+                                    if (Accept(Sym.Semicolon)) {
+                                        var uad = new UsingAliasDirective(start);
                                         uad.Alias = qid.Parts.First();
                                         uad.NamespaceOrTypeName = rhs;
                                         usings.Add(uad);
@@ -76,8 +147,8 @@ namespace Monticello.Parsing
                             }
 
                             //Using-namespace 
-                            if (Accept(buf, Sym.Semicolon)) {
-                                var und = new UsingNamespaceDirective();
+                            if (Accept(Sym.Semicolon)) {
+                                var und = new UsingNamespaceDirective(start);
                                 und.NamespaceName = qid;
                                 usings.Add(und);
                                 la.Commit();
@@ -100,19 +171,80 @@ namespace Monticello.Parsing
             return usings;
         }
 
-        public static List<NamespaceMemberDeclaration> ParseNamespaceMemberDecls(TokenBuffer buf, ParseResult result)
+        public List<AttrSection> ParseGlobalAttrs()
+        {
+            var sections = new List<AttrSection>();
+            AttrSection section;
+            while (null != (section = ParseGlobalAttr())) {
+                sections.Add(section);
+            }
+
+            return sections;
+        }
+
+        public AttrSection ParseGlobalAttr()
+        {
+            Token t;
+            if (Accept(Sym.OpenIndexer, out t)) {
+                var section = new AttrSection(t);
+                if (Expect(Sym.Id, out t)) {
+                    switch (t.Value) {
+                        case "assembly":
+                            section.Target = AttrTarget.Assembly;
+                            break;
+                        case "module":
+                            section.Target = AttrTarget.Module;
+                            break;
+                        default:
+                            //Add an error, but try to continue parsing
+                            result.Error("Expected 'module' or 'assembly' target", t);
+                            break;
+                    }
+                }
+
+                if (Expect(Sym.Colon)) {
+                    do {
+                        Attr attr;
+                        if (!Accept(ParseAttribute, out attr))
+                            break;
+
+                        section.Attrs.Add(attr);
+                    } while (Accept(Sym.Comma));
+
+                    Expect(Sym.CloseIndexer);                        
+                }
+
+                return section;
+            }
+
+            return null;
+        }
+
+        public Attr ParseAttribute()
+        {
+            QualifiedIdExp qid;
+            if (Expect(ParseQualifiedId, "Expected identifier", out qid)) {
+                var attr = new Attr(qid.StartToken);
+                attr.AttrTypeName = qid;
+                return attr;
+            }
+
+            return null;
+        }
+
+        public List<NamespaceMemberDeclaration> ParseNamespaceMemberDecls()
         {
             throw new NotImplementedException();
         }
 
-        public static QualifiedIdExp ParseQualifiedId(TokenBuffer buf, ParseResult result)
+        public QualifiedIdExp ParseQualifiedId()
         {
             using (var la = new LookaheadFrame(buf)) {
                 var t = buf.Next();
                 if (t.Is(Sym.Id)) {
-                    var qid = new QualifiedIdExp();
+                    var qid = new QualifiedIdExp(t);
                     qid.Parts.Add(new IdExp(t));
-                    while (Accept(buf, Sym.Dot)) {
+                    while (Accept(Sym.Dot)) {
                         t = buf.Next();
                         if (t.Is(Sym.Id)) {
                             qid.Parts.Add(new IdExp(t));

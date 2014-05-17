@@ -19,6 +19,7 @@ namespace Monticello.Parsing
         protected Lexer()
         {
             table.Add(".", Sym.Dot);
+            table.Add(",", Sym.Comma);
             table.Add("+", Sym.Plus);
             table.Add("-", Sym.Minus);
             table.Add("*", Sym.Mult);
@@ -49,6 +50,7 @@ namespace Monticello.Parsing
             table.Add("++", Sym.PlusPlus);
             table.Add("--", Sym.MinusMinus);
             table.Add(";", Sym.Semicolon);
+            table.Add(":", Sym.Colon);
             table.Add("=", Sym.AssignEqual);
             table.Add("==", Sym.EqualEqual);
             table.Add("!=", Sym.NotEqual);
@@ -57,6 +59,8 @@ namespace Monticello.Parsing
             table.Add("}", Sym.CloseBrace);
             table.Add("(", Sym.OpenParen);
             table.Add(")", Sym.CloseParen);
+            table.Add("[", Sym.OpenIndexer);
+            table.Add("]", Sym.CloseIndexer);
             table.Add("abstract", Sym.KwAbstract);
             table.Add("as", Sym.KwAs);
             table.Add("base", Sym.KwBase);
@@ -220,7 +224,7 @@ namespace Monticello.Parsing
             char? p = Peek();
             if (!p.HasValue)
             {
-                return new Token() { Line = this.Line, Col = this.Col, Sym = global::Sym.Eof };
+                return new Token() { Line = this.Line, Col = this.Col, Sym = Sym.Eof };
             }
             else
             {
