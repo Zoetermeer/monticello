@@ -18,6 +18,30 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestUsing1()
+        {
+            string input = "using System.Text;";
+            var ud = new Parser(input).ParseUsingDirective();
+            UsingNamespaceDirective und = ud as UsingNamespaceDirective;
+            Assert.IsNotNull(und);
+            Assert.IsTrue(und.NamespaceName.PartsAre("System", "Text"));
+        }
+
+        [TestMethod]
+        public void TestUsing2()
+        {
+            string input = "using System.Foo; using System.Bar.Whatever ;";
+            var parser = new Parser(input);
+            UsingNamespaceDirective und = parser.ParseUsingDirective() as UsingNamespaceDirective;
+            Assert.IsNotNull(und);
+            Assert.IsTrue(und.NamespaceName.PartsAre("System", "Foo"));
+
+            und = parser.ParseUsingDirective() as UsingNamespaceDirective;
+            Assert.IsNotNull(und);
+            Assert.IsTrue(und.NamespaceName.PartsAre("System", "Bar", "Whatever"));
+        }
+
+        [TestMethod]
         public void TestUsings1()
         {
             string input = "using System;";

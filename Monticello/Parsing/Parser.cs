@@ -101,12 +101,6 @@ namespace Monticello.Parsing
 
         /// <summary>
         /// using-directives := (using-directive)*
-        /// using-directive :=
-        ///     using-alias-directive
-        ///     using-namespace-directive
-        ///     
-        /// using-alias-directive := using id = qualified-id ;
-        /// using-namespace-directive := using qualified-id ;
         /// </summary>
         /// <param name="buf"></param>
         /// <param name="result"></param>
@@ -114,61 +108,53 @@ namespace Monticello.Parsing
         public List<UsingDirective> ParseUsingDirectives()
         {
             var usings = new List<UsingDirective>();
-            while (true) {
-                using (var la = new LookaheadFrame(buf)) {
-                    Token start;
-                    if (Accept(Sym.KwUsing, out start)) {
-                        var qid = ParseQualifiedId();
-                        if (null != qid) {
-                            //If the qualified-id has only a single part, 
-                            //this can be a using-alias directive; otherwise, 
-                            //must be a using-namespace 
-                            if (qid.Parts.Count == 1) {
-                                if (Accept(Sym.AssignEqual)) {
-                                    //Using-alias directive
-                                    var rhs = ParseQualifiedId();
-                                    if (null == rhs) {
-                                        result.Error("Expected namespace or type name", buf);
-                                        break;
-                                    }
-
-                                    if (Accept(Sym.Semicolon)) {
-                                        var uad = new UsingAliasDirective(start);
-                                        uad.Alias = qid.Parts.First();
-                                        uad.NamespaceOrTypeName = rhs;
-                                        usings.Add(uad);
-                                        la.Commit();
-                                        continue;
-                                    }
-
-                                    result.Error("Expected semicolon", buf);
-                                    break;
-                                }
-                            }
-
-                            //Using-namespace 
-                            if (Accept(Sym.Semicolon)) {
-                                var und = new UsingNamespaceDirective(start);
-                                und.NamespaceName = qid;
-                                usings.Add(und);
-                                la.Commit();
-                                continue;
-                            }   
-
-                            result.Error("Expected semicolon", buf);
-                            break;
-                        }
-
-                        result.Error("Expected identifier", buf);
-                        break;
-                    }
-
-                    //Otherwise, not a using
-                    break;
-                }
+            UsingDirective ud;
+            while (Accept(ParseUsingDirective, out ud)) {
+                usings.Add(ud);
             }
 
             return usings;
+        }
+
+        /// <summary>
+        /// using-directive :=
+        ///     using-alias-directive
+        ///     using-namespace-directive
+        ///     
+        /// using-alias-directive := using id = qualified-id ;
+        /// using-namespace-directive := using qualified-id ;
+        /// </summary>
+        /// <returns></returns>
+        public UsingDirective ParseUsingDirective()
+        {
+            Token start;
+            if (Accept(Sym.KwUsing, out start)) {
+                QualifiedIdExp nameOrAlias;
+                if (Expect(ParseQualifiedId, "Expected identifier", out nameOrAlias)) {
+                    if (nameOrAlias.Parts.Count == 1) {
+                        if (Accept(Sym.AssignEqual)) {
+                            //Using-alias-directive
+                            QualifiedIdExp nsOrTypeName;
+                            if (Expect(ParseQualifiedId, "Expected namespace or type name", out nsOrTypeName)
+                                && Expect(Sym.Semicolon)) {
+                                var uad = new UsingAliasDirective(start);
+                                uad.Alias = nameOrAlias.Parts.First();
+                                uad.NamespaceOrTypeName = nsOrTypeName;
+                                return uad;
+                            }
+                        }
+                    } 
+
+                    //Otherwise, using-namespace-directive
+                    if (Expect(Sym.Semicolon)) {
+                        var und = new UsingNamespaceDirective(start);
+                        und.NamespaceName = nameOrAlias;
+                        return und;
+                    }
+                }
+            }
+
+            return null;
         }
 
         public List<AttrSection> ParseGlobalAttrs()
@@ -203,13 +189,16 @@ namespace Monticello.Parsing
                 }
 
                 if (Expect(Sym.Colon)) {
-                    do {
-                        Attr attr;
-                        if (!Accept(ParseAttribute, out attr))
-                            break;
-
+                    Attr attr;
+                    if (Expect(ParseAttribute, "Expected attribute", out attr)) {
                         section.Attrs.Add(attr);
-                    } while (Accept(Sym.Comma));
+                        while (Accept(Sym.Comma)) {
+                            if (!Accept(ParseAttribute, out attr))
+                                break;
+
+                            section.Attrs.Add(attr);
+                        }
+                    }
 
                     Expect(Sym.CloseIndexer);                        
                 }
