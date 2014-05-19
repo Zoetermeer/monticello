@@ -52,6 +52,7 @@
     <Compile Include="Parsing\Parser.cs" />
     <Compile Include="Parsing\ParseResult.cs" />
     <Compile Include="Parsing\RecognitionException.cs" />
+    <Compile Include="Parsing\Sandbox.cs" />
     <Compile Include="Parsing\StringLiteralLexicalRule.cs" />
     <Compile Include="Parsing\Sym.cs" />
     <Compile Include="Parsing\Token.cs" />

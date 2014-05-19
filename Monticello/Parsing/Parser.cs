@@ -121,8 +121,8 @@ namespace Monticello.Parsing
         ///     using-alias-directive
         ///     using-namespace-directive
         ///     
-        /// using-alias-directive := using id = qualified-id ;
-        /// using-namespace-directive := using qualified-id ;
+        /// using-alias-directive := 'using' id '=' qualified-id ';'
+        /// using-namespace-directive := 'using' qualified-id ';'
         /// </summary>
         /// <returns></returns>
         public UsingDirective ParseUsingDirective()
@@ -161,7 +161,7 @@ namespace Monticello.Parsing
         {
             var sections = new List<AttrSection>();
             AttrSection section;
-            while (null != (section = ParseGlobalAttr())) {
+            while (Accept(ParseGlobalAttr, out section)) {
                 sections.Add(section);
             }
 
@@ -209,13 +209,86 @@ namespace Monticello.Parsing
             return null;
         }
 
+        /// <summary>
+        /// attribute := qualified-id { attribute-args }
+        /// attribute-args := 
+        ///     '(' { positional-arg-list }')'
+        ///     '(' positional-arg-list ',' named-arg-list ')'
+        ///     '(' named-arg-list ')'
+        /// </summary>
+        /// <returns></returns>
         public Attr ParseAttribute()
         {
             QualifiedIdExp qid;
             if (Expect(ParseQualifiedId, "Expected identifier", out qid)) {
                 var attr = new Attr(qid.StartToken);
                 attr.AttrTypeName = qid;
+                if (Accept(Sym.OpenParen)) {
+                    attr.Args.AddRange(ParseAttrArgs());
+                }
+
                 return attr;
+            }
+
+            return null;
+        }
+
+        public List<AttrArgument> ParseAttrArgs()
+        {
+            var args = new List<AttrArgument>();
+            bool namedArgs = false;
+            AttrArgument arg;
+            if (!Accept(Sym.CloseParen)) {
+                do {
+                    if (Expect(ParseAttrArgument, "Expected expression or named argument", out arg)) {
+                        if (namedArgs) {
+                            //All subsequent arguments must be named-args
+                            if (!(arg is NamedAttrArgument)) {
+                                result.Error("Named argument expected", arg.StartToken);
+                                continue;
+                            }
+
+                            args.Add(arg);
+                        } else {
+                            if (arg is NamedAttrArgument)
+                                namedArgs = true;
+
+                            args.Add(arg);
+                        }
+                    }
+                } while (Accept(Sym.Comma));
+
+                Expect(Sym.CloseParen);
+            }
+
+            return args;
+        }
+
+        public AttrArgument ParseAttrArgument()
+        {
+            using (var la = new LookaheadFrame(buf)) {
+                //Try named-arg first, using two-token lookahead
+                //(a positional arg is just an expression, which can 
+                //be an id)
+                Token start;
+                if (Accept(Sym.Id, out start) && Accept(Sym.AssignEqual)) {
+                    Exp exp;
+                    if (Expect(ParseExp, "Expected expression", out exp)) {
+                        var na = new NamedAttrArgument(start);
+                        na.Name = new IdExp(start);
+                        na.Exp = exp;
+                        la.Commit();
+                        return na;
+                    }
+                }
+            }
+
+            //Otherwise, backtrack and try a positional arg
+            Exp argExp;
+            if (Expect(ParseExp, "Expected expression", out argExp)) {
+                var pa = new PositionalAttrArgument(argExp.StartToken);
+                pa.Exp = argExp;
+                return pa;
             }
 
             return null;
@@ -224,6 +297,28 @@ namespace Monticello.Parsing
         public List<NamespaceMemberDeclaration> ParseNamespaceMemberDecls()
         {
             throw new NotImplementedException();
+        }
+
+        public Exp ParseExp()
+        {
+            //Only parse simple literals for now, so we can 
+            //test attribute parsing
+            var next = buf.Peek();
+            switch (next.Sym) {
+                case Sym.RealLiteral:
+                case Sym.IntLiteral:
+                case Sym.HexIntLiteral:
+                    buf.Next();
+                    return new NumericLiteralExp(next);
+                case Sym.StringLiteral:
+                    buf.Next();
+                    return new StringLiteralExp(next);
+                case Sym.CharLiteral:
+                    buf.Next();
+                    return new CharLiteralExp(next);
+            }
+
+            return null;
         }
 
         public QualifiedIdExp ParseQualifiedId()

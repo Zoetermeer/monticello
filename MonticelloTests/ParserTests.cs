@@ -85,6 +85,106 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestAttribute1()
+        {
+            var parser = new Parser("System.FooAttribute");
+            var attr = parser.ParseAttribute();
+            Assert.IsNotNull(attr);
+            Assert.IsTrue(attr.AttrTypeName.PartsAre("System", "FooAttribute"));
+        }
+
+        [TestMethod]
+        public void TestAttribute2()
+        {
+            var parser = new Parser("System.Foo.BarAttribute()");
+            var attr = parser.ParseAttribute();
+            Assert.IsNotNull(attr);
+            Assert.IsTrue(attr.AttrTypeName.PartsAre("System", "Foo", "BarAttribute"));
+            Assert.AreEqual(0, attr.Args.Count);
+        }
+
+        [TestMethod]
+        public void TestAttribute3()
+        {
+            var parser = new Parser("System.Foo.BarAttribute(1, 2)");
+            var attr = parser.ParseAttribute();
+            Assert.IsNotNull(attr);
+            Assert.IsTrue(attr.AttrTypeName.PartsAre("System", "Foo", "BarAttribute"));
+            Assert.AreEqual(2, attr.Args.Count);
+
+            Assert.IsTrue(attr.Args[0] is PositionalAttrArgument);
+            Assert.IsTrue(attr.Args[1] is PositionalAttrArgument);
+            Assert.IsTrue(attr.Args[0].Exp is NumericLiteralExp);
+            Assert.IsTrue(attr.Args[1].Exp is NumericLiteralExp);
+        }
+
+        [TestMethod]
+        public void TestAttribute4()
+        {
+            var parser = new Parser("Foo(SomeNumberArg=42)");
+            var attr = parser.ParseAttribute();
+            Assert.IsNotNull(attr);
+            Assert.IsTrue(attr.AttrTypeName.PartsAre("Foo"));
+            Assert.AreEqual(1, attr.Args.Count);
+
+            var na = attr.Args[0] as NamedAttrArgument;
+            Assert.IsNotNull(na);
+            Assert.AreEqual("SomeNumberArg", na.Name.Spelling.Value);
+            Assert.IsTrue(na.Exp is NumericLiteralExp);
+        }
+
+        [TestMethod]
+        public void TestAttribute5()
+        {
+            var parser = new Parser("Foo(42, SomeNumberArg=43)");
+            var attr = parser.ParseAttribute();
+            Assert.IsNotNull(attr);
+            Assert.IsTrue(attr.AttrTypeName.PartsAre("Foo"));
+            Assert.AreEqual(2, attr.Args.Count);
+
+            var pa = attr.Args[0] as PositionalAttrArgument;
+            var na = attr.Args[1] as NamedAttrArgument;
+            Assert.IsNotNull(pa);
+            Assert.IsNotNull(na);
+
+            Assert.IsTrue(pa.Exp is NumericLiteralExp);
+            Assert.AreEqual("SomeNumberArg", na.Name.Spelling.Value);
+            Assert.IsTrue(na.Exp is NumericLiteralExp);
+        }
+
+        [TestMethod]
+        public void TestAttribute6()
+        {
+            var parser = new Parser("FooAttribute(1, 2, Name=\"whatever\")");
+            var attr = parser.ParseAttribute();
+            Assert.IsNotNull(attr);
+            Assert.IsTrue(attr.AttrTypeName.PartsAre("FooAttribute"));
+
+            Assert.AreEqual(3, attr.Args.Count);
+            var pa1 = attr.Args[0] as PositionalAttrArgument;
+            var pa2 = attr.Args[1] as PositionalAttrArgument;
+            var na = attr.Args[2] as NamedAttrArgument;
+
+            Assert.IsNotNull(pa1);
+            Assert.IsNotNull(pa2);
+            Assert.IsNotNull(na);
+
+            Assert.IsTrue(pa1.Exp is NumericLiteralExp);
+            Assert.IsTrue(pa2.Exp is NumericLiteralExp);
+            Assert.AreEqual("Name", na.Name.Spelling.Value);
+            Assert.IsTrue(na.Exp is StringLiteralExp);
+        }
+
+        [TestMethod]
+        public void TestGlobalAttr1()
+        {
+            var parser = new Parser("[assembly: FooAttribute(1, 2, Name=\"whatever\")]");
+            var sect = parser.ParseGlobalAttr();
+            Assert.IsNotNull(sect);
+            Assert.AreEqual(1, sect.Attrs.Count);
+        }
+
+        [TestMethod]
         public void TestGlobalAttrs1()
         {
             var parser = new Parser("[assembly: CLSCompliant]");
@@ -105,6 +205,25 @@ namespace MonticelloTests
 
             Assert.IsTrue(fa.AttrTypeName.PartsAre("FooAttribute"));
             Assert.IsTrue(ba.AttrTypeName.PartsAre("Something", "Else", "BarAttribute"));
+        }
+
+        [TestMethod]
+        public void TestGlobalAttrs3()
+        {
+            var parser = new Parser("[assembly: FooAttribute(1, 2, Name=\"whatever\")]");
+            var attrs = parser.ParseGlobalAttrs();
+            Assert.AreEqual(1, attrs.Count);
+
+            var sect = attrs[0];
+            Assert.AreEqual(1, sect.Attrs.Count);
+            var fa = sect.Attrs[0];
+            Assert.AreEqual(3, fa.Args.Count);
+            Assert.IsTrue(fa.Args[0] is PositionalAttrArgument);
+            Assert.IsTrue(fa.Args[1] is PositionalAttrArgument);
+
+            NamedAttrArgument na = fa.Args[2] as NamedAttrArgument;
+            Assert.IsNotNull(na);
+            Assert.AreEqual("Name", na.Name.Spelling.Value);
         }
     }
 }

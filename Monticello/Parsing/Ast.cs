@@ -124,6 +124,8 @@ namespace Monticello.Parsing {
 
 
     public class Attr : AstNode {
+        private List<AttrArgument> args = new List<AttrArgument>();
+        
         public Attr(Token start)
             : base(start)
         {
@@ -131,11 +133,89 @@ namespace Monticello.Parsing {
         }
 
         public QualifiedIdExp AttrTypeName { get; set; }
+        public List<AttrArgument> Args { get { return args; } }
+    }
+
+
+    public abstract class AttrArgument : AstNode {
+        protected AttrArgument(Token start)
+            : base(start)
+        {
+
+        }
+
+        public Exp Exp { get; set; }
+    }
+
+    public class PositionalAttrArgument : AttrArgument {
+        public PositionalAttrArgument(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public int Position { get; set; }
+    }
+
+
+    public class NamedAttrArgument : AttrArgument {
+        public NamedAttrArgument(Token start)
+            : base(start)
+        {
+
+        }
+
+        public IdExp Name { get; set; }
     }
 
 
     public abstract class Exp : AstNode {
         protected Exp(Token start)
+            : base(start)
+        {
+
+        }
+    }
+
+
+    public abstract class LiteralExp : Exp {
+        protected LiteralExp(Token start) 
+            : base(start)
+        {
+
+        }
+    }
+
+
+    public class CharLiteralExp : LiteralExp {
+        public CharLiteralExp(Token start)
+            : base(start)
+        {
+            Value = char.Parse(start.Value);
+        }
+
+        public char Value { get; set; }
+    }
+
+
+    public class StringLiteralExp : LiteralExp {
+        public StringLiteralExp(Token start) 
+            : base(start)
+        {
+            Value = start.Value;
+        }
+
+        public string Value { get; set; }
+    }
+
+
+    //TODO: Figure out the best way to represent numeric literals 
+    //in the AST.
+    //The lexer doesn't know any more about a numeric literal token 
+    //than the fact that it's a valid numeric literal.  The actual type 
+    //and characteristics should be figured out here.
+    public class NumericLiteralExp : LiteralExp {
+        public NumericLiteralExp(Token start)
             : base(start)
         {
 
