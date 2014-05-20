@@ -141,6 +141,7 @@ namespace Monticello.Parsing
             AddRule("volatile", Sym.KwVolatile, isKeyword: true);
             AddRule("while", Sym.KwWhile, isKeyword: true);
             AddRule(new StringLiteralLexicalRule());
+            AddRule(new CharLiteralLexicalRule());
             AddRule(new NumericLiteralLexicalRule());
             AddRule(new IdLexicalRule());
         }

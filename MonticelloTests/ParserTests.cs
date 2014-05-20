@@ -179,7 +179,7 @@ namespace MonticelloTests
         public void TestGlobalAttr1()
         {
             var parser = new Parser("[module: FooAttribute(1, 2, Name=\"whatever\")]");
-            var sect = parser.ParseGlobalAttr();
+            var sect = parser.ParseGlobalAttrSection();
             Assert.IsNotNull(sect);
             Assert.AreEqual(1, sect.Attrs.Count);
         }
@@ -209,6 +209,34 @@ namespace MonticelloTests
 
         [TestMethod]
         public void TestGlobalAttrs3()
+        {
+            var parser = new Parser("[assembly: Foo(1, 2, Arg=\"blah\"), Bar(Prop='c')]");
+            var sections = parser.ParseGlobalAttrs();
+            Assert.AreEqual(1, sections.Count);
+
+            var sect = sections[0];
+            Assert.AreEqual(2, sect.Attrs.Count);
+            var fa = sect.Attrs[0];
+            var fb = sect.Attrs[1];
+
+            Assert.IsTrue(fa.AttrTypeName.PartsAre("Foo"));
+            Assert.IsTrue(fb.AttrTypeName.PartsAre("Bar"));
+
+            Assert.AreEqual(3, fa.Args.Count);
+            Assert.AreEqual(1, fb.Args.Count);
+
+            Assert.IsTrue(fa.Args[0] is PositionalAttrArgument);
+            Assert.IsTrue(fa.Args[1] is PositionalAttrArgument);
+            Assert.IsTrue(fa.Args[2] is NamedAttrArgument);
+
+            NamedAttrArgument bArg = fb.Args[0] as NamedAttrArgument;
+            Assert.IsNotNull(bArg);
+            Assert.AreEqual("Prop", bArg.Name.Spelling.Value);
+            Assert.IsTrue(bArg.Exp is CharLiteralExp);
+        }
+
+        [TestMethod]
+        public void TestGlobalAttrs4()
         {
             var parser = new Parser("[assembly: FooAttribute(1, 2, Name=\"whatever\")]");
             var attrs = parser.ParseGlobalAttrs();

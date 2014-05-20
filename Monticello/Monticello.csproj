@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Parsing\Ast.cs" />
+    <Compile Include="Parsing\CharLiteralLexicalRule.cs" />
     <Compile Include="Parsing\ICanLookahead.cs" />
     <Compile Include="Parsing\IdLexicalRule.cs" />
     <Compile Include="Parsing\Lexer.cs" />

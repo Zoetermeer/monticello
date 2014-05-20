@@ -19,6 +19,7 @@ namespace Monticello.Parsing {
             return c == '"' || c == '@';
         }
 
+        //TODO: 'Verbatim' string handling (e.g. @"...")
         public override Token Match(Lexer lexer)
         {
             if (lexer.CanRead) {
@@ -26,8 +27,8 @@ namespace Monticello.Parsing {
                 if (match.Success) {
                     var tok = new Token() { Line = lexer.Line, Col = lexer.Col };
                     tok.Sym = Sym.StringLiteral;
-                    tok.Value = match.Value;
-                    lexer.Advance(tok.Value.Length);
+                    tok.Value = match.Value.Substring(1, match.Value.Length - 2);
+                    lexer.Advance(match.Value.Length);
                     return tok;
                 }
             }

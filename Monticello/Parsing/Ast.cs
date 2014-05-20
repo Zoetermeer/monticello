@@ -15,8 +15,12 @@ namespace Monticello.Parsing {
     }
 
 
+    /// <summary>
+    /// Top-level AST node for a source file.
+    /// </summary>
     public class CompilationUnit : AstNode {
         List<UsingDirective> usings = new List<UsingDirective>();
+        List<AttrSection> globalAttrs = new List<AttrSection>();
         List<NamespaceMemberDeclaration> decls = new List<NamespaceMemberDeclaration>();
 
         public CompilationUnit()
@@ -26,6 +30,7 @@ namespace Monticello.Parsing {
         }
 
         public List<UsingDirective> Usings { get { return usings; } }
+        public List<AttrSection> GlobalAttributes { get { return globalAttrs; } }
         public List<NamespaceMemberDeclaration> Decls { get { return decls; } }
     }
 

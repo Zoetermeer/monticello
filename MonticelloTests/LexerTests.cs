@@ -267,13 +267,42 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestCharLiteral1()
+        {
+            string input = @" 'c' ";
+            var tok = new Lexer(input).Read();
+
+            Assert.AreEqual(Sym.CharLiteral, tok.Sym);
+            Assert.AreEqual("c", tok.Value);
+        }
+
+        [TestMethod]
+        public void TestCharLiteral2()
+        {
+            string input = @" 'c' '\u12ad'   '\''";
+            var lexer = new Lexer(input);
+            var tok = lexer.Read();
+
+            Assert.AreEqual(Sym.CharLiteral, tok.Sym);
+            Assert.AreEqual("c", tok.Value);
+
+            tok = lexer.Read();
+            Assert.AreEqual(Sym.CharLiteral, tok.Sym);
+            Assert.AreEqual(@"\u12ad", tok.Value);
+
+            tok = lexer.Read();
+            Assert.AreEqual(Sym.CharLiteral, tok.Sym);
+            Assert.AreEqual(@"\'", tok.Value);
+        }
+
+        [TestMethod]
         public void TestStringLiteral1()
         {
             string input = @" ""hello world"" ";
             var tok = new Lexer(input).Read();
 
             Assert.AreEqual(Sym.StringLiteral, tok.Sym);
-            Assert.AreEqual(@"""hello world""", tok.Value);
+            Assert.AreEqual(@"hello world", tok.Value);
         }
 
         [TestMethod]
@@ -282,7 +311,7 @@ namespace MonticelloTests
             string input = @" ""hello \""james\"" swaine"" ";
             var tok = new Lexer(input).Read();
             Assert.AreEqual(Sym.StringLiteral, tok.Sym);
-            Assert.AreEqual(@"""hello \""james\"" swaine""", tok.Value);
+            Assert.AreEqual(@"hello \""james\"" swaine", tok.Value);
         }
 
         [TestMethod]

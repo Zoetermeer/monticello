@@ -89,11 +89,11 @@ namespace Monticello.Parsing
 
         public CompilationUnit ParseCompilationUnit()
         {
-            var usings = ParseUsingDirectives();
             //var decls = ParseNamespaceMemberDecls(buf, result);
 
             var cu = new CompilationUnit();
-            cu.Usings.AddRange(usings);
+            cu.Usings.AddRange(ParseUsingDirectives());
+            cu.GlobalAttributes.AddRange(ParseGlobalAttrs());
             //cu.Decls.AddRange(decls);
 
             return cu;
@@ -161,14 +161,14 @@ namespace Monticello.Parsing
         {
             var sections = new List<AttrSection>();
             AttrSection section;
-            while (Accept(ParseGlobalAttr, out section)) {
+            while (Accept(ParseGlobalAttrSection, out section)) {
                 sections.Add(section);
             }
 
             return sections;
         }
 
-        public AttrSection ParseGlobalAttr()
+        public AttrSection ParseGlobalAttrSection()
         {
             Token t;
             if (Accept(Sym.OpenIndexer, out t)) {

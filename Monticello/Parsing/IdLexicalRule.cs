@@ -47,6 +47,9 @@ namespace Monticello.Parsing {
                         sb.Append(lexer.NextChar());
                     }
 
+                    //Since the id rule tries to match before any 
+                    //reserved-word ones, we need to make sure this id isn't 
+                    //actually a keyword
                     word = sb.ToString();
                     isKeyword = lexer.KeywordTable.ContainsKey(word);
                     if (!isKeyword) {
@@ -57,8 +60,8 @@ namespace Monticello.Parsing {
                 }
             }
 
+            //If it is a kw, invoke that rule instead
             if (isKeyword) {
-                //Apply the keyword rule instead
                 return lexer.KeywordTable[word].Match(lexer);
             }
             
