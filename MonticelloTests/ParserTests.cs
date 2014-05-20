@@ -253,5 +253,18 @@ namespace MonticelloTests
             Assert.IsNotNull(na);
             Assert.AreEqual("Name", na.Name.Spelling.Value);
         }
+
+        [TestMethod]
+        public void TestGlobalAttrs5()
+        {
+            var parser = new Parser("[assembly: Foo(1, 2)]  [module: Bar(\"\", \"\")]");
+            var sects = parser.ParseGlobalAttrs();
+
+            Assert.AreEqual(2, sects.Count);
+            var sect1 = sects[0];
+            var sect2 = sects[1];
+            Assert.AreEqual(1, sect1.Attrs.Count);
+            Assert.AreEqual(1, sect2.Attrs.Count);
+        }
     }
 }
