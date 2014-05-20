@@ -82,6 +82,23 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestId1()
+        {
+            var lexer = new Lexer("assembly");
+            var t = lexer.Read();
+            Assert.AreEqual(Sym.Id, t.Sym);
+        }
+
+        [TestMethod]
+        public void TestId2()
+        {
+            var lexer = new Lexer("usingblahblah");
+            var t = lexer.Read();
+            Assert.AreEqual(Sym.Id, t.Sym);
+            Assert.AreEqual("usingblahblah", t.Value);
+        }
+
+        [TestMethod]
         public void TestIntLiteral()
         {
             var lexer = new Lexer("33");

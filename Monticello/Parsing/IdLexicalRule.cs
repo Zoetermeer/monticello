@@ -35,19 +35,33 @@ namespace Monticello.Parsing {
 
         public override Token Match(Lexer lexer)
         {
-            var c = lexer.NextChar();
-            if (IsIdentifierStartChar(c)) {
-                var tok = new Token() { Line = lexer.Line, Col = lexer.Col, Sym = Sym.Id };
-                var sb = new StringBuilder();
-                sb.Append(c);
-                while (IsIdentifierPartChar(lexer.Peek())) {
-                    sb.Append(lexer.NextChar());
-                }
+            bool isKeyword = false;
+            string word = string.Empty;
+            using (var la = new LookaheadFrame(lexer)) {
+                var c = lexer.NextChar();
+                if (IsIdentifierStartChar(c)) {
+                    var tok = new Token() { Line = lexer.Line, Col = lexer.Col, Sym = Sym.Id };
+                    var sb = new StringBuilder();
+                    sb.Append(c);
+                    while (IsIdentifierPartChar(lexer.Peek())) {
+                        sb.Append(lexer.NextChar());
+                    }
 
-                tok.Value = sb.ToString();
-                return tok;
+                    word = sb.ToString();
+                    isKeyword = lexer.KeywordTable.ContainsKey(word);
+                    if (!isKeyword) {
+                        la.Commit();
+                        tok.Value = word;
+                        return tok;
+                    }
+                }
             }
 
+            if (isKeyword) {
+                //Apply the keyword rule instead
+                return lexer.KeywordTable[word].Match(lexer);
+            }
+            
             return null;
         }
     }

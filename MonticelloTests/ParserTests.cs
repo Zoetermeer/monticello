@@ -178,7 +178,7 @@ namespace MonticelloTests
         [TestMethod]
         public void TestGlobalAttr1()
         {
-            var parser = new Parser("[assembly: FooAttribute(1, 2, Name=\"whatever\")]");
+            var parser = new Parser("[module: FooAttribute(1, 2, Name=\"whatever\")]");
             var sect = parser.ParseGlobalAttr();
             Assert.IsNotNull(sect);
             Assert.AreEqual(1, sect.Attrs.Count);

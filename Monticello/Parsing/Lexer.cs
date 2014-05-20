@@ -12,136 +12,137 @@ namespace Monticello.Parsing
         private int pos;
         private int? markPos = null;
         private LexicalRuleTable table = new LexicalRuleTable();
+        private Dictionary<string, LexicalRule> keywordTable = new Dictionary<string, LexicalRule>();
 
         /// <summary>
         /// Can be overridden in derived classes (mocks)?
         /// </summary>
         protected Lexer()
         {
-            table.Add(".", Sym.Dot);
-            table.Add(",", Sym.Comma);
-            table.Add("+", Sym.Plus);
-            table.Add("-", Sym.Minus);
-            table.Add("*", Sym.Mult);
-            table.Add("/", Sym.Div);
-            table.Add("%", Sym.Mod);
-            table.Add("+=", Sym.PlusEqual);
-            table.Add("-=", Sym.MinusEqual);
-            table.Add("*=", Sym.MultEqual);
-            table.Add("/=", Sym.DivEqual);
-            table.Add("%=", Sym.ModEqual);
-            table.Add("<", Sym.LessThan);
-            table.Add(">", Sym.GreaterThan);
-            table.Add("<=", Sym.LtEqual);
-            table.Add(">=", Sym.GtEqual);
-            table.Add("<<", Sym.LeftShift);
-            table.Add(">>", Sym.RightShift);
-            table.Add("<<=", Sym.LeftShiftEqual);
-            table.Add(">>=", Sym.RightShiftEqual);
-            table.Add("&", Sym.BitwiseAnd);
-            table.Add("|", Sym.BitwiseOr);
-            table.Add("^", Sym.BitwiseXor);
-            table.Add("~", Sym.BitwiseNot);
-            table.Add("&=", Sym.BitwiseAndEqual);
-            table.Add("|=", Sym.BitwiseOrEqual);
-            table.Add("^=", Sym.BitwiseXorEqual);
-            table.Add("&&", Sym.BooleanAnd);
-            table.Add("||", Sym.BooleanOr);
-            table.Add("++", Sym.PlusPlus);
-            table.Add("--", Sym.MinusMinus);
-            table.Add(";", Sym.Semicolon);
-            table.Add(":", Sym.Colon);
-            table.Add("=", Sym.AssignEqual);
-            table.Add("==", Sym.EqualEqual);
-            table.Add("!=", Sym.NotEqual);
-            table.Add("!", Sym.Not);
-            table.Add("{", Sym.OpenBrace);
-            table.Add("}", Sym.CloseBrace);
-            table.Add("(", Sym.OpenParen);
-            table.Add(")", Sym.CloseParen);
-            table.Add("[", Sym.OpenIndexer);
-            table.Add("]", Sym.CloseIndexer);
-            table.Add("abstract", Sym.KwAbstract);
-            table.Add("as", Sym.KwAs);
-            table.Add("base", Sym.KwBase);
-            table.Add("bool", Sym.KwBool);
-            table.Add("break", Sym.KwBreak);
-            table.Add("byte", Sym.KwByte);
-            table.Add("case", Sym.KwCase);
-            table.Add("catch", Sym.KwCatch);
-            table.Add("char", Sym.KwChar);
-            table.Add("checked", Sym.KwChecked);
-            table.Add("class", Sym.KwClass);
-            table.Add("const", Sym.KwConst);
-            table.Add("continue", Sym.KwContinue);
-            table.Add("decimal", Sym.KwDecimal);
-            table.Add("default", Sym.KwDefault);
-            table.Add("delegate", Sym.KwDelegate);
-            table.Add("do", Sym.KwDo);
-            table.Add("double", Sym.KwDouble);
-            table.Add("else", Sym.KwElse);
-            table.Add("enum", Sym.KwEnum);
-            table.Add("event", Sym.KwEvent);
-            table.Add("explicit", Sym.KwExplicit);
-            table.Add("extern", Sym.KwExtern);
-            table.Add("false", Sym.KwFalse);
-            table.Add("finally", Sym.KwFinally);
-            table.Add("fixed", Sym.KwFixed);
-            table.Add("float", Sym.KwFloat);
-            table.Add("for", Sym.KwFor);
-            table.Add("foreach", Sym.KwForeach);
-            table.Add("goto", Sym.KwGoto);
-            table.Add("if", Sym.KwIf);
-            table.Add("implicit", Sym.KwImplicit);
-            table.Add("in", Sym.KwIn);
-            table.Add("int", Sym.KwInt);
-            table.Add("interface", Sym.KwInterface);
-            table.Add("internal", Sym.KwInternal);
-            table.Add("is", Sym.KwIs);
-            table.Add("lock", Sym.KwLock);
-            table.Add("long", Sym.KwLong);
-            table.Add("namespace", Sym.KwNamespace);
-            table.Add("new", Sym.KwNew);
-            table.Add("null", Sym.KwNull);
-            table.Add("object", Sym.KwObject);
-            table.Add("operator", Sym.KwOperator);
-            table.Add("out", Sym.KwOut);
-            table.Add("override", Sym.KwOverride);
-            table.Add("params", Sym.KwParams);
-            table.Add("private", Sym.KwPrivate);
-            table.Add("protected", Sym.KwProtected);
-            table.Add("public", Sym.KwPublic);
-            table.Add("readonly", Sym.KwReadonly);
-            table.Add("ref", Sym.KwRef);
-            table.Add("return", Sym.KwReturn);
-            table.Add("sbyte", Sym.KwSbyte);
-            table.Add("sealed", Sym.KwSealed);
-            table.Add("short", Sym.KwShort);
-            table.Add("sizeof", Sym.KwSizeof);
-            table.Add("stackalloc", Sym.KwStackalloc);
-            table.Add("static", Sym.KwStatic);
-            table.Add("string", Sym.KwString);
-            table.Add("struct", Sym.KwStruct);
-            table.Add("switch", Sym.KwSwitch);
-            table.Add("this", Sym.KwThis);
-            table.Add("throw", Sym.KwThrow);
-            table.Add("true", Sym.KwTrue);
-            table.Add("try", Sym.KwTry);
-            table.Add("typeof", Sym.KwTypeof);
-            table.Add("uint", Sym.KwUint);
-            table.Add("ulong", Sym.KwUlong);
-            table.Add("unchecked", Sym.KwUnchecked);
-            table.Add("unsafe", Sym.KwUnsafe);
-            table.Add("ushort", Sym.KwUshort);
-            table.Add("using", Sym.KwUsing);
-            table.Add("var", Sym.KwVar);
-            table.Add("virtual", Sym.KwVirtual);
-            table.Add("void", Sym.KwVoid);
-            table.Add("volatile", Sym.KwVolatile);
-            table.Add("while", Sym.KwWhile);
-            table.Add(new StringLiteralLexicalRule());
-            table.Add(new NumericLiteralLexicalRule());
-            table.Add(new IdLexicalRule());
+            AddRule(".", Sym.Dot);
+            AddRule(",", Sym.Comma);
+            AddRule("+", Sym.Plus);
+            AddRule("-", Sym.Minus);
+            AddRule("*", Sym.Mult);
+            AddRule("/", Sym.Div);
+            AddRule("%", Sym.Mod);
+            AddRule("+=", Sym.PlusEqual);
+            AddRule("-=", Sym.MinusEqual);
+            AddRule("*=", Sym.MultEqual);
+            AddRule("/=", Sym.DivEqual);
+            AddRule("%=", Sym.ModEqual);
+            AddRule("<", Sym.LessThan);
+            AddRule(">", Sym.GreaterThan);
+            AddRule("<=", Sym.LtEqual);
+            AddRule(">=", Sym.GtEqual);
+            AddRule("<<", Sym.LeftShift);
+            AddRule(">>", Sym.RightShift);
+            AddRule("<<=", Sym.LeftShiftEqual);
+            AddRule(">>=", Sym.RightShiftEqual);
+            AddRule("&", Sym.BitwiseAnd);
+            AddRule("|", Sym.BitwiseOr);
+            AddRule("^", Sym.BitwiseXor);
+            AddRule("~", Sym.BitwiseNot);
+            AddRule("&=", Sym.BitwiseAndEqual);
+            AddRule("|=", Sym.BitwiseOrEqual);
+            AddRule("^=", Sym.BitwiseXorEqual);
+            AddRule("&&", Sym.BooleanAnd);
+            AddRule("||", Sym.BooleanOr);
+            AddRule("++", Sym.PlusPlus);
+            AddRule("--", Sym.MinusMinus);
+            AddRule(";", Sym.Semicolon);
+            AddRule(":", Sym.Colon);
+            AddRule("=", Sym.AssignEqual);
+            AddRule("==", Sym.EqualEqual);
+            AddRule("!=", Sym.NotEqual);
+            AddRule("!", Sym.Not);
+            AddRule("{", Sym.OpenBrace);
+            AddRule("}", Sym.CloseBrace);
+            AddRule("(", Sym.OpenParen);
+            AddRule(")", Sym.CloseParen);
+            AddRule("[", Sym.OpenIndexer);
+            AddRule("]", Sym.CloseIndexer);
+            AddRule("abstract", Sym.KwAbstract, isKeyword: true);
+            AddRule("as", Sym.KwAs, isKeyword: true);
+            AddRule("base", Sym.KwBase, isKeyword: true);
+            AddRule("bool", Sym.KwBool, isKeyword: true);
+            AddRule("break", Sym.KwBreak, isKeyword: true);
+            AddRule("byte", Sym.KwByte, isKeyword: true);
+            AddRule("case", Sym.KwCase, isKeyword: true);
+            AddRule("catch", Sym.KwCatch, isKeyword: true);
+            AddRule("char", Sym.KwChar, isKeyword: true);
+            AddRule("checked", Sym.KwChecked, isKeyword: true);
+            AddRule("class", Sym.KwClass, isKeyword: true);
+            AddRule("const", Sym.KwConst, isKeyword: true);
+            AddRule("continue", Sym.KwContinue, isKeyword: true);
+            AddRule("decimal", Sym.KwDecimal, isKeyword: true);
+            AddRule("default", Sym.KwDefault, isKeyword: true);
+            AddRule("delegate", Sym.KwDelegate, isKeyword: true);
+            AddRule("do", Sym.KwDo, isKeyword: true);
+            AddRule("double", Sym.KwDouble, isKeyword: true);
+            AddRule("else", Sym.KwElse, isKeyword: true);
+            AddRule("enum", Sym.KwEnum, isKeyword: true);
+            AddRule("event", Sym.KwEvent, isKeyword: true);
+            AddRule("explicit", Sym.KwExplicit, isKeyword: true);
+            AddRule("extern", Sym.KwExtern, isKeyword: true);
+            AddRule("false", Sym.KwFalse, isKeyword: true);
+            AddRule("finally", Sym.KwFinally, isKeyword: true);
+            AddRule("fixed", Sym.KwFixed, isKeyword: true);
+            AddRule("float", Sym.KwFloat, isKeyword: true);
+            AddRule("for", Sym.KwFor, isKeyword: true);
+            AddRule("foreach", Sym.KwForeach, isKeyword: true);
+            AddRule("goto", Sym.KwGoto, isKeyword: true);
+            AddRule("if", Sym.KwIf, isKeyword: true);
+            AddRule("implicit", Sym.KwImplicit, isKeyword: true);
+            AddRule("in", Sym.KwIn, isKeyword: true);
+            AddRule("int", Sym.KwInt, isKeyword: true);
+            AddRule("interface", Sym.KwInterface, isKeyword: true);
+            AddRule("internal", Sym.KwInternal, isKeyword: true);
+            AddRule("is", Sym.KwIs, isKeyword: true);
+            AddRule("lock", Sym.KwLock, isKeyword: true);
+            AddRule("long", Sym.KwLong, isKeyword: true);
+            AddRule("namespace", Sym.KwNamespace, isKeyword: true);
+            AddRule("new", Sym.KwNew, isKeyword: true);
+            AddRule("null", Sym.KwNull, isKeyword: true);
+            AddRule("object", Sym.KwObject, isKeyword: true);
+            AddRule("operator", Sym.KwOperator, isKeyword: true);
+            AddRule("out", Sym.KwOut, isKeyword: true);
+            AddRule("override", Sym.KwOverride, isKeyword: true);
+            AddRule("params", Sym.KwParams, isKeyword: true);
+            AddRule("private", Sym.KwPrivate, isKeyword: true);
+            AddRule("protected", Sym.KwProtected, isKeyword: true);
+            AddRule("public", Sym.KwPublic, isKeyword: true);
+            AddRule("readonly", Sym.KwReadonly, isKeyword: true);
+            AddRule("ref", Sym.KwRef, isKeyword: true);
+            AddRule("return", Sym.KwReturn, isKeyword: true);
+            AddRule("sbyte", Sym.KwSbyte, isKeyword: true);
+            AddRule("sealed", Sym.KwSealed, isKeyword: true);
+            AddRule("short", Sym.KwShort, isKeyword: true);
+            AddRule("sizeof", Sym.KwSizeof, isKeyword: true);
+            AddRule("stackalloc", Sym.KwStackalloc, isKeyword: true);
+            AddRule("static", Sym.KwStatic, isKeyword: true);
+            AddRule("string", Sym.KwString, isKeyword: true);
+            AddRule("struct", Sym.KwStruct, isKeyword: true);
+            AddRule("switch", Sym.KwSwitch, isKeyword: true);
+            AddRule("this", Sym.KwThis, isKeyword: true);
+            AddRule("throw", Sym.KwThrow, isKeyword: true);
+            AddRule("true", Sym.KwTrue, isKeyword: true);
+            AddRule("try", Sym.KwTry, isKeyword: true);
+            AddRule("typeof", Sym.KwTypeof, isKeyword: true);
+            AddRule("uint", Sym.KwUint, isKeyword: true);
+            AddRule("ulong", Sym.KwUlong, isKeyword: true);
+            AddRule("unchecked", Sym.KwUnchecked, isKeyword: true);
+            AddRule("unsafe", Sym.KwUnsafe, isKeyword: true);
+            AddRule("ushort", Sym.KwUshort, isKeyword: true);
+            AddRule("using", Sym.KwUsing, isKeyword: true);
+            AddRule("var", Sym.KwVar, isKeyword: true);
+            AddRule("virtual", Sym.KwVirtual, isKeyword: true);
+            AddRule("void", Sym.KwVoid, isKeyword: true);
+            AddRule("volatile", Sym.KwVolatile, isKeyword: true);
+            AddRule("while", Sym.KwWhile, isKeyword: true);
+            AddRule(new StringLiteralLexicalRule());
+            AddRule(new NumericLiteralLexicalRule());
+            AddRule(new IdLexicalRule());
         }
 
         public Lexer(string input)
@@ -170,6 +171,23 @@ namespace Monticello.Parsing
             {
                 return pos < input.Length;
             }
+        }
+
+        public Dictionary<string, LexicalRule> KeywordTable
+        {
+            get { return keywordTable; }
+        }
+
+        private void AddRule(LexicalRule rule)
+        {
+            table.Add(rule);
+        }
+
+        private void AddRule(string pat, Sym sym, bool isKeyword = false)
+        {
+            var rule = table.Add(pat, sym);
+            if (isKeyword)
+                keywordTable.Add(pat, rule);
         }
 
         public void SkipWs()

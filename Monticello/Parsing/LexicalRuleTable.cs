@@ -38,22 +38,25 @@ namespace Monticello.Parsing
             rulesForStartChar.Sort();
         }
 
-        public void Add(string pat, Sym sym)
+        public LexicalRule Add(string pat, Sym sym)
         {
-            Add(new LexicalRule(pat, sym));
+            var rule = new LexicalRule(pat, sym);
+            Add(rule);
+
+            return rule;
         }
 
         public IEnumerable<LexicalRule> RulesForStartChar(char c)
         {
+            foreach (var rule in specialRules)
+                if (rule.IsPossibleStartChar(c))
+                    yield return rule;
+
             if (rules.ContainsKey(c))
             {
                 foreach (var rule in rules[c])
                     yield return rule;
             }
-
-            foreach (var rule in specialRules)
-                if (rule.IsPossibleStartChar(c))
-                    yield return rule;
         }
     }
 }
