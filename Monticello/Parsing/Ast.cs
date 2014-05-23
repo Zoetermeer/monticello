@@ -249,7 +249,7 @@ namespace Monticello.Parsing {
 
         protected string ToString(string name)
         {
-            return string.Format("({0} {1} {2}", name, Lhs, Rhs);
+            return string.Format("({0} {1} {2})", name, Lhs, Rhs);
         }
     }
 
@@ -341,6 +341,24 @@ namespace Monticello.Parsing {
             : base(start, op)
         {
 
+        }
+
+        public override string ToString()
+        {
+            string name = "add";
+            switch (this.Op) {
+                case Parsing.Op.Plus:
+                    name = "add";
+                    break;
+                case Parsing.Op.Minus:
+                    name = "sub";
+                    break;
+                default:
+                    name = "<unknown op>";
+                    break;
+            }
+
+            return ToString(name);
         }
     }
 
@@ -481,6 +499,11 @@ namespace Monticello.Parsing {
         {
             get { return int.Parse(StartToken.Value); }
         }
+
+        public override string ToString()
+        {
+            return StartToken.Value;
+        }
     }
 
 
@@ -536,6 +559,11 @@ namespace Monticello.Parsing {
                         return false;
                 }
             }
+        }
+
+        public override string ToString()
+        {
+            return Value.ToString().ToLower();
         }
     }
 

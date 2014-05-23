@@ -303,6 +303,7 @@ namespace MonticelloTests
         {
             var parser = new Parser("1 + 2 || false");
             var e = parser.ParseExp();
+            Assert.AreEqual("(conditional-or (add 1 2) false)", e.ToString());
 
             var coe = e as ConditionalOrExp;
             Assert.IsNotNull(coe);
