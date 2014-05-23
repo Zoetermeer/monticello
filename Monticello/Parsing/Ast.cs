@@ -15,6 +15,46 @@ namespace Monticello.Parsing {
     }
 
 
+    public enum Op {
+        BooleanOr, 
+        BooleanAnd, 
+        InclusiveOr, 
+        ExclusiveOr, 
+        BitwiseAnd, 
+        EqualEqual, 
+        NotEqual, 
+        LessThan, 
+        GreaterThan, 
+        LessThanEqual, 
+        GreaterThanEqual, 
+        Is, 
+        As, 
+        LeftShift, 
+        RightShift, 
+        Plus, 
+        Minus, 
+        Multiply, 
+        Divide, 
+        Mod,
+        PlusPlus, 
+        MinusMinus, 
+        Not, 
+        BitwiseNot, 
+        PointerDeref,
+        Equal, 
+        AddEqual, 
+        SubtractEqual, 
+        MultiplyEqual, 
+        DivideEqual, 
+        ModEqual, 
+        BitwiseAndEqual, 
+        BitwiseOrEqual, 
+        BitwiseXorEqual, 
+        LeftShiftEqual, 
+        RightShiftEqual
+    }
+
+
     /// <summary>
     /// Top-level AST node for a source file.
     /// </summary>
@@ -183,48 +223,176 @@ namespace Monticello.Parsing {
     }
 
 
-    public abstract class LiteralExp : Exp {
-        protected LiteralExp(Token start) 
+    public class ConditionalExp : Exp {
+        public ConditionalExp(Token start)
             : base(start)
+        {
+
+        }
+
+        public Exp Test { get; set; }
+        public Exp Then { get; set; }
+        public Exp Else { get; set; }
+    }
+
+
+    public abstract class BinaryExp : Exp {
+        protected BinaryExp(Token start, Op op)
+            : base(start)
+        {
+            this.Op = op;
+        }
+
+        public Op Op { get; set; }
+        public Exp Lhs { get; set; }
+        public Exp Rhs { get; set; }
+
+        protected string ToString(string name)
+        {
+            return string.Format("({0} {1} {2}", name, Lhs, Rhs);
+        }
+    }
+
+
+    public class ConditionalOrExp : BinaryExp {
+        public ConditionalOrExp(Token start)
+            : base(start, Op.BooleanOr)
+        {
+
+        }
+
+        public override string ToString()
+        {
+            return ToString("conditional-or");
+        }
+    }
+
+
+    public class ConditionalAndExp : BinaryExp {
+        public ConditionalAndExp(Token start) 
+            : base(start, Op.BooleanAnd)
+        {
+
+        }
+
+        public override string ToString()
+        {
+            return ToString("conditional-and");
+        }
+    }
+
+
+    public class InclusiveOrExp : BinaryExp {
+        public InclusiveOrExp(Token start)
+            : base(start, Op.InclusiveOr)
         {
 
         }
     }
 
 
-    public class CharLiteralExp : LiteralExp {
-        public CharLiteralExp(Token start)
-            : base(start)
+    public class ExclusiveOrExp : BinaryExp {
+        public ExclusiveOrExp(Token start)
+            : base(start, Op.ExclusiveOr)
         {
-            Value = char.Parse(start.Value);
-        }
 
-        public char Value { get; set; }
+        }
     }
 
 
-    public class StringLiteralExp : LiteralExp {
-        public StringLiteralExp(Token start) 
-            : base(start)
+    public class BitwiseAndExp : BinaryExp {
+        public BitwiseAndExp(Token start)
+            : base(start, Op.BitwiseAnd)
         {
-            Value = start.Value;
-        }
 
-        public string Value { get; set; }
+        }
     }
 
 
-    //TODO: Figure out the best way to represent numeric literals 
-    //in the AST.
-    //The lexer doesn't know any more about a numeric literal token 
-    //than the fact that it's a valid numeric literal.  The actual type 
-    //and characteristics should be figured out here.
-    public class NumericLiteralExp : LiteralExp {
-        public NumericLiteralExp(Token start)
+    public class EqualityExp : BinaryExp {
+        public EqualityExp(Token start, Op eqOp)
+            : base(start, eqOp)
+        {
+
+        }
+    }
+
+
+    public class RelationalExp : BinaryExp {
+        public RelationalExp(Token start, Op relOp)
+            : base(start, relOp)
+        {
+
+        }
+    }
+
+
+    public class ShiftExp : BinaryExp {
+        public ShiftExp(Token start, Op shOp)
+            : base(start, shOp)
+        {
+
+        }
+    }
+
+
+    public class AdditiveExp : BinaryExp {
+        public AdditiveExp(Token start, Op op) 
+            : base(start, op)
+        {
+
+        }
+    }
+
+
+    public class MultiplicativeExp : BinaryExp {
+        public MultiplicativeExp(Token start, Op op)
+            : base(start, op)
+        {
+
+        }
+    }
+
+
+    public class UnaryExp : Exp {
+        public UnaryExp(Token start, Op op)
+            : base(start)
+        {
+            this.Op = op;
+        }
+
+        public Op Op { get; private set; }
+        public Exp Exp { get; set; }
+    }
+
+
+    public class PreIncrExp : UnaryExp {
+        public PreIncrExp(Token start)
+            : base(start, Op.PlusPlus)
+        {
+
+        }
+    }
+
+
+    public class PreDecrExp : UnaryExp {
+        public PreDecrExp(Token start)
+            : base(start, Op.MinusMinus)
+        {
+
+        }
+    }
+
+
+    public class CastExp : Exp {
+        public CastExp(Token start)
             : base(start)
         {
 
         }
+
+        public QualifiedIdExp TargetType { get; set; }
+        public Exp Exp { get; set; }
     }
 
 
@@ -265,8 +433,8 @@ namespace Monticello.Parsing {
     }
 
 
-    public class IntLiteralExp : Exp {
-        public IntLiteralExp(Token start)
+    public abstract class LiteralExp : Exp {
+        protected LiteralExp(Token start)
             : base(start)
         {
 
@@ -274,8 +442,106 @@ namespace Monticello.Parsing {
     }
 
 
-    public class FloatLiteralExp : Exp {
-        public FloatLiteralExp(Token start)
+    //TODO: Figure out the best way to represent numeric literals 
+    //in the AST.
+    //The lexer doesn't know any more about a numeric literal token 
+    //than the fact that it's a valid numeric literal.  The actual type 
+    //and characteristics should be figured out here.
+    public class NumericLiteralExp : LiteralExp {
+        public NumericLiteralExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public int NumValue
+        {
+            get
+            {
+                return int.Parse(this.StartToken.Value);
+            }
+        }
+
+        public override string ToString()
+        {
+            return StartToken.Value;
+        }
+    }
+
+
+    //TODO: What about longs, etc?
+    public class IntLiteralExp : LiteralExp {
+        public IntLiteralExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public int Value
+        {
+            get { return int.Parse(StartToken.Value); }
+        }
+    }
+
+
+    public class RealLiteralExp : LiteralExp {
+        public RealLiteralExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        //TODO: How to represent the value? 
+        //Could be a float, double, etc.
+    }
+
+
+    public class StringLiteralExp : LiteralExp {
+        public StringLiteralExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public string Value { get { return StartToken.Value; } }
+    }
+
+
+    public class CharLiteralExp : LiteralExp {
+        public CharLiteralExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public char Value { get { return char.Parse(StartToken.Value); } }
+    }
+
+
+    public class BooleanLiteralExp : LiteralExp {
+        public BooleanLiteralExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public bool Value
+        {
+            get
+            {
+                switch (StartToken.Sym) {
+                    case Sym.KwTrue:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        }
+    }
+
+
+    public class NullLiteralExp : LiteralExp {
+        public NullLiteralExp(Token start) 
             : base(start)
         {
 

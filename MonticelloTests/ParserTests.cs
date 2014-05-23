@@ -114,8 +114,8 @@ namespace MonticelloTests
 
             Assert.IsTrue(attr.Args[0] is PositionalAttrArgument);
             Assert.IsTrue(attr.Args[1] is PositionalAttrArgument);
-            Assert.IsTrue(attr.Args[0].Exp is NumericLiteralExp);
-            Assert.IsTrue(attr.Args[1].Exp is NumericLiteralExp);
+            Assert.IsTrue(attr.Args[0].Exp is IntLiteralExp);
+            Assert.IsTrue(attr.Args[1].Exp is IntLiteralExp);
         }
 
         [TestMethod]
@@ -130,7 +130,7 @@ namespace MonticelloTests
             var na = attr.Args[0] as NamedAttrArgument;
             Assert.IsNotNull(na);
             Assert.AreEqual("SomeNumberArg", na.Name.Spelling.Value);
-            Assert.IsTrue(na.Exp is NumericLiteralExp);
+            Assert.IsTrue(na.Exp is IntLiteralExp);
         }
 
         [TestMethod]
@@ -147,9 +147,9 @@ namespace MonticelloTests
             Assert.IsNotNull(pa);
             Assert.IsNotNull(na);
 
-            Assert.IsTrue(pa.Exp is NumericLiteralExp);
+            Assert.IsTrue(pa.Exp is IntLiteralExp);
             Assert.AreEqual("SomeNumberArg", na.Name.Spelling.Value);
-            Assert.IsTrue(na.Exp is NumericLiteralExp);
+            Assert.IsTrue(na.Exp is IntLiteralExp);
         }
 
         [TestMethod]
@@ -169,8 +169,8 @@ namespace MonticelloTests
             Assert.IsNotNull(pa2);
             Assert.IsNotNull(na);
 
-            Assert.IsTrue(pa1.Exp is NumericLiteralExp);
-            Assert.IsTrue(pa2.Exp is NumericLiteralExp);
+            Assert.IsTrue(pa1.Exp is IntLiteralExp);
+            Assert.IsTrue(pa2.Exp is IntLiteralExp);
             Assert.AreEqual("Name", na.Name.Spelling.Value);
             Assert.IsTrue(na.Exp is StringLiteralExp);
         }
@@ -265,6 +265,60 @@ namespace MonticelloTests
             var sect2 = sects[1];
             Assert.AreEqual(1, sect1.Attrs.Count);
             Assert.AreEqual(1, sect2.Attrs.Count);
+        }
+
+        [TestMethod]
+        public void TestExp1()
+        {
+            var parser = new Parser("1");
+            var e = parser.ParseExp();
+
+            Assert.IsNotNull(e);
+            IntLiteralExp le = e as IntLiteralExp;
+            Assert.IsNotNull(le);
+            Assert.AreEqual(1, le.Value);
+        }
+
+        [TestMethod]
+        public void TestExp2()
+        {
+            var parser = new Parser("1 + 2");
+            var e = parser.ParseExp();
+
+            Assert.IsNotNull(e);
+            AdditiveExp ae = e as AdditiveExp;
+            Assert.IsNotNull(ae);
+
+            IntLiteralExp lhs = ae.Lhs as IntLiteralExp;
+            IntLiteralExp rhs = ae.Rhs as IntLiteralExp;
+            Assert.IsNotNull(lhs);
+            Assert.IsNotNull(rhs);
+
+            Assert.AreEqual(1, lhs.Value);
+            Assert.AreEqual(2, rhs.Value);
+        }
+
+        [TestMethod]
+        public void TestExp3()
+        {
+            var parser = new Parser("1 + 2 || false");
+            var e = parser.ParseExp();
+
+            var coe = e as ConditionalOrExp;
+            Assert.IsNotNull(coe);
+            var ae = coe.Lhs as AdditiveExp;
+            var fe = coe.Rhs as BooleanLiteralExp;
+
+            Assert.IsNotNull(ae);
+            Assert.IsNotNull(fe);
+
+            Assert.AreEqual(false, fe.Value);
+            var one = ae.Lhs as IntLiteralExp;
+            var two = ae.Rhs as IntLiteralExp;
+            Assert.IsNotNull(one);
+            Assert.IsNotNull(two);
+            Assert.AreEqual(1, one.Value);
+            Assert.AreEqual(2, two.Value);
         }
     }
 }

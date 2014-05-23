@@ -8,14 +8,50 @@ namespace Monticello.Parsing
 {
     public class Parser
     {
+        public class LR : AstNode
+        {
+            public LR(bool wasDetected) 
+                : base(null)
+            {
+                this.WasDetected = wasDetected;
+            }
+
+            public bool WasDetected { get; set; }
+        }
+
+        public class MemoEntry 
+        {
+            public MemoEntry(int pos)
+            {
+                Pos = pos;
+                HasResult = false;
+            }
+
+            public MemoEntry(int pos, AstNode node) 
+            {
+                Pos = pos;
+                Ast = node;
+                HasResult = null != node;
+            }
+
+            public bool IsFail { get { return !HasResult; } }
+            public bool HasResult { get; set; }
+            public AstNode Ast { get; set; }
+            public int Pos { get; set; }
+        }
+
+
         private string input;
         private TokenBuffer buf;
+        private Lexer lexer;
         private ParseResult result;
+        private Dictionary<Tuple<string, int>, MemoEntry> memoTable = new Dictionary<Tuple<string, int>, MemoEntry>();
 
         public Parser(string input)
         {
             this.input = input;
-            this.buf = new TokenBuffer(new Lexer(input));
+            this.lexer = new Lexer(input);
+            this.buf = new TokenBuffer(lexer);
             this.result = new ParseResult();
         }
 
@@ -80,6 +116,65 @@ namespace Monticello.Parsing
 
             tok = null;
             return false;
+        }
+
+        private T GrowLR<T>(Func<T> rule, int p, MemoEntry m) 
+            where T : AstNode
+        {
+            //...
+            while (true) {
+                lexer.Pos = p;
+                //...
+                var ans = rule();
+                if (null == ans || lexer.Pos <= m.Pos)
+                    break;
+
+                m.Ast = ans;
+                m.Pos = lexer.Pos;
+            }
+
+            //...
+
+            lexer.Pos = m.Pos;
+            return m.Ast as T;
+        }
+
+        public T ApplyRule<T>(Func<T> rule)
+            where T : AstNode
+        {
+            return ApplyRule<T>(rule, lexer.Pos);
+        }
+
+        private T ApplyRule<T>(Func<T> rule, int pos) 
+            where T : AstNode
+        {
+            MemoEntry m = null;
+            LR lr;
+            string ruleName = rule.Method.Name;
+            var key = Tuple.Create(ruleName, pos);
+            if (!memoTable.TryGetValue(key, out m)) {
+                lr = new LR(false);
+                m = new MemoEntry(pos, lr); //Failure
+                memoTable.Add(key, m);
+
+                var ans = rule();
+                m.Ast = ans;
+                m.Pos = lexer.Pos;
+                if (lr.WasDetected && null != ans) {
+                    return GrowLR(rule, pos, m);
+                }
+
+                return ans;
+            }
+
+            lexer.Pos = m.Pos;
+            lr = m.Ast as LR;
+            if (null != lr) {
+                lr.WasDetected = true;
+                return null;
+            }
+
+            return m.Ast as T;
         }
 
         public static CompilationUnit Parse(string input)
@@ -299,28 +394,450 @@ namespace Monticello.Parsing
             throw new NotImplementedException();
         }
 
-        public Exp ParseExp()
+        public LiteralExp ParseLiteral()
         {
-            //Only parse simple literals for now, so we can 
-            //test attribute parsing
-            var next = buf.Peek();
-            switch (next.Sym) {
-                case Sym.RealLiteral:
+            var tok = buf.Next();
+            switch (tok.Sym) {
                 case Sym.IntLiteral:
-                case Sym.HexIntLiteral:
-                    buf.Next();
-                    return new NumericLiteralExp(next);
-                case Sym.StringLiteral:
-                    buf.Next();
-                    return new StringLiteralExp(next);
+                    return new IntLiteralExp(tok);
+                case Sym.RealLiteral:
+                    return new RealLiteralExp(tok);
                 case Sym.CharLiteral:
-                    buf.Next();
-                    return new CharLiteralExp(next);
+                    return new CharLiteralExp(tok);
+                case Sym.StringLiteral:
+                    return new StringLiteralExp(tok);
+                case Sym.KwNull:
+                    return new NullLiteralExp(tok);
+                case Sym.KwFalse:
+                case Sym.KwTrue:
+                    return new BooleanLiteralExp(tok);
             }
 
             return null;
         }
 
+        /// <summary>
+        /// primary-no-array-creation-exp :=
+        ///     literal
+        ///     simple-name
+        ///     parenthesized-exp
+        ///     member-access
+        ///     invocation-exp
+        ///     element-access
+        ///     this-access
+        ///     base-access
+        ///     post-incr-exp
+        ///     post-decr-exp
+        ///     object-creation-exp
+        ///     delegate-creation-exp
+        ///     typeof-exp
+        ///     sizeof-exp
+        ///     checked-exp
+        ///     unchecked-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParsePrimaryNoArrayCreationExp()
+        {
+            //TODO: All other cases besides literals
+            return ApplyRule(ParseLiteral);
+        }
+
+        /// <summary>
+        /// primary-exp :=
+        ///     primary-no-array-creation-exp
+        ///     array-creation-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParsePrimaryExp()
+        {
+            //TODO: Array creation expressions
+            return ApplyRule(ParsePrimaryNoArrayCreationExp);
+        }
+
+        /// <summary>
+        /// pre-incr-exp := '++' unary-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParsePreIncrExp()
+        {
+            Token tok;
+            if (Accept(Sym.PlusPlus, out tok)) {
+                var exp = ApplyRule(ParseUnaryExp);
+                if (null != exp)
+                    return new PreIncrExp(tok) { Exp = exp };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// pre-decr-exp := '--' unary-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParsePreDecrExp()
+        {
+            Token tok;
+            if (Accept(Sym.MinusMinus, out tok)) {
+                var exp = ApplyRule(ParseUnaryExp);
+                if (null != exp)
+                    return new PreDecrExp(tok) { Exp = exp };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// cast-exp := '(' qualified-id ')' unary-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseCastExp()
+        {
+            Token tok;
+            if (Accept(Sym.OpenParen, out tok)) {
+                var typeId = ApplyRule(ParseQualifiedId);
+                if (null != typeId) {
+                    Expect(Sym.CloseParen);
+                    var exp = ApplyRule(ParseUnaryExp);
+                    if (null != exp)
+                        return new CastExp(tok) { TargetType = typeId, Exp = exp };
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// unary-exp :=
+        ///     '+' unary-exp
+        ///     '-' unary-exp
+        ///     '!' unary-exp
+        ///     '~' unary-exp 
+        ///     '*' unary-exp (???)
+        ///     pre-incr-exp
+        ///     pre-decr-exp
+        ///     cast-exp
+        ///     primary-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseUnaryExp()
+        {
+            var t = buf.Peek();
+            Func<Op, Exp> un = (op) =>
+            {
+                buf.Next();
+                return new UnaryExp(t, op) { Exp = ApplyRule(ParseUnaryExp) };
+            };
+
+            switch (t.Sym) {
+                case Sym.Plus:
+                    return un(Op.Plus);
+                case Sym.Minus:
+                    return un(Op.Minus);
+                case Sym.Not:
+                    return un(Op.Not);
+                case Sym.BitwiseNot:
+                    return un(Op.BitwiseNot);
+                case Sym.PlusPlus:
+                    return ApplyRule(ParsePreIncrExp);
+                case Sym.MinusMinus:
+                    return ApplyRule(ParsePreDecrExp);
+                case Sym.OpenParen:
+                    return ApplyRule(ParseCastExp);
+                default:
+                    return ApplyRule(ParsePrimaryExp);
+            }
+        }
+
+        /// <summary>
+        /// mult-exp :=
+        ///     mult-exp '*' unary-exp
+        ///     mult-exp '/' unary-exp
+        ///     mult-exp '%' unary-exp
+        ///     unary-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseMultExp()
+        {
+            var lhs = ApplyRule(ParseMultExp);
+            if (null == lhs)
+                return ApplyRule(ParseUnaryExp);
+
+            if (Accept(Sym.Mult))
+                return new MultiplicativeExp(lhs.StartToken, Op.Multiply) { Lhs = lhs, Rhs = ApplyRule(ParseUnaryExp) };
+            else if (Accept(Sym.Div))
+                return new MultiplicativeExp(lhs.StartToken, Op.Multiply) { Lhs = lhs, Rhs = ApplyRule(ParseUnaryExp) };
+            else if (Accept(Sym.Mod))
+                return new MultiplicativeExp(lhs.StartToken, Op.Mod) { Lhs = lhs, Rhs = ApplyRule(ParseUnaryExp) };
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// additive-exp :=
+        ///     additive-exp '+' mult-exp
+        ///     additive-exp '-' mult-exp
+        ///     mult-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseAdditiveExp()
+        {
+            var lhs = ApplyRule(ParseAdditiveExp);
+            if (null == lhs)
+                return ApplyRule(ParseMultExp);
+
+            if (Accept(Sym.Plus))
+                return new AdditiveExp(lhs.StartToken, Op.Plus) { Lhs = lhs, Rhs = ApplyRule(ParseMultExp) };
+            else if (Accept(Sym.Minus))
+                return new AdditiveExp(lhs.StartToken, Op.Minus) { Lhs = lhs, Rhs = ApplyRule(ParseMultExp) };
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// shift-exp :=
+        ///     shift-exp '&lt;&lt;' additive-exp
+        ///     shift-exp '>>' additive-exp
+        ///     additive-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseShiftExp()
+        {
+            var lhs = ApplyRule(ParseShiftExp);
+            if (null == lhs) {
+                return ApplyRule(ParseAdditiveExp);
+            }
+
+            if (Accept(Sym.LeftShift))
+                return new ShiftExp(lhs.StartToken, Op.LeftShift) { Lhs = lhs, Rhs = ApplyRule(ParseAdditiveExp) };
+            else if (Accept(Sym.RightShift))
+                return new ShiftExp(lhs.StartToken, Op.RightShift) { Lhs = lhs, Rhs = ApplyRule(ParseAdditiveExp) };
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// relational-exp :=
+        ///     relational-exp '&lt;' shift-exp
+        ///     relational-exp '>' shift-exp
+        ///     relational-exp '&lt;=' shift-exp
+        ///     relational-exp '>=' shift-exp 
+        ///     relational-exp 'is' qualified-id
+        ///     relational-exp 'as' qualified-id
+        ///     shift-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseRelationalExp()
+        {
+            var lhs = ApplyRule(ParseRelationalExp);
+            if (null == lhs)
+                return ApplyRule(ParseShiftExp);
+
+            Func<Op, Exp> getRel = (op) => new RelationalExp(lhs.StartToken, op) { Lhs = lhs, Rhs = ApplyRule(ParseShiftExp) };
+
+            if (Accept(Sym.LessThan))
+                getRel(Op.LessThan);
+            else if (Accept(Sym.GreaterThan))
+                getRel(Op.GreaterThan);
+            else if (Accept(Sym.LtEqual))
+                getRel(Op.LessThanEqual);
+            else if (Accept(Sym.GtEqual))
+                getRel(Op.GreaterThanEqual);
+            else if (Accept(Sym.KwIs))
+                return new RelationalExp(lhs.StartToken, Op.Is) { Lhs = lhs, Rhs = ApplyRule(ParseQualifiedId) };
+            else if (Accept(Sym.KwAs))
+                return new RelationalExp(lhs.StartToken, Op.As) { Lhs = lhs, Rhs = ApplyRule(ParseQualifiedId) };
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// equality-exp :=
+        ///     equality-exp '==' relational-exp
+        ///     equality-exp '!=' relational-exp
+        ///     relational-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseEqualityExp()
+        {
+            var lhs = ApplyRule(ParseEqualityExp);
+            if (null == lhs) {
+                return ApplyRule(ParseRelationalExp);
+            }
+
+            if (Accept(Sym.EqualEqual)) {
+                return new EqualityExp(lhs.StartToken, Op.EqualEqual) { Lhs = lhs, Rhs = ApplyRule(ParseRelationalExp) };
+            } else if (Accept(Sym.NotEqual)) {
+                return new EqualityExp(lhs.StartToken, Op.NotEqual) { Lhs = lhs, Rhs = ApplyRule(ParseRelationalExp) };
+            }
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// and-exp :=
+        ///     and-exp '&' equality-exp
+        ///     equality-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseAndExp()
+        {
+            var lhs = ApplyRule(ParseAndExp);
+            if (null == lhs) {
+                return ApplyRule(ParseEqualityExp);
+            }
+
+            if (Accept(Sym.BitwiseAnd)) {
+                var rhs = ApplyRule(ParseEqualityExp);
+                return new BitwiseAndExp(lhs.StartToken) { Lhs = lhs, Rhs = rhs };
+            }
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// exclusive-or-exp :=
+        ///     exclusive-or-exp '^' and-exp
+        ///     and-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseExclusiveOrExp()
+        {
+            var lhs = ApplyRule(ParseExclusiveOrExp);
+            if (null == lhs) {
+                return ApplyRule(ParseAndExp);
+            }
+
+            if (Accept(Sym.BitwiseXor)) {
+                var rhs = ApplyRule(ParseExclusiveOrExp);
+                return new ExclusiveOrExp(lhs.StartToken) { Lhs = lhs, Rhs = rhs };
+            }
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// inclusive-or-exp :=
+        ///     inclusive-or-exp '|' exclusive-or-exp 
+        ///     exclusive-or-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseInclusiveOrExp()
+        {
+            var lhs = ApplyRule(ParseInclusiveOrExp);
+            if (null == lhs) {
+                return ApplyRule(ParseExclusiveOrExp);
+            }
+
+            if (Accept(Sym.BitwiseOr)) {
+                var rhs = ApplyRule(ParseExclusiveOrExp);
+                return new InclusiveOrExp(lhs.StartToken) { Lhs = lhs, Rhs = rhs };
+            }
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// conditional-and-exp :=
+        ///     conditional-and-exp '&&' inclusive-or-exp
+        ///     inclusive-or-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseConditionalAndExp()
+        {
+            var lhs = ApplyRule(ParseConditionalAndExp);
+            if (null == lhs) {
+                return ApplyRule(ParseInclusiveOrExp);
+            }
+
+            if (Accept(Sym.BooleanAnd)) {
+                var rhs = ApplyRule(ParseConditionalAndExp);
+                return new ConditionalAndExp(lhs.StartToken) { Lhs = lhs, Rhs = rhs };
+            }
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// conditional-or-exp :=
+        ///     conditional-or-exp '||' conditional-and-exp
+        ///     conditional-and-exp 
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseConditionalOrExp()
+        {
+            var lhs = ApplyRule(ParseConditionalOrExp);
+            if (null == lhs) {
+                return ApplyRule(ParseConditionalAndExp);
+            }
+
+            if (Accept(Sym.BooleanOr)) {
+                var rhs = ApplyRule(ParseConditionalAndExp);
+                return new ConditionalOrExp(lhs.StartToken) { Lhs = lhs, Rhs = rhs };
+            }
+
+            return lhs;
+        }
+
+        /// <summary>
+        /// conditional-exp :=
+        ///     conditional-or-exp 
+        ///     conditional-or-exp '?' exp ':' exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseConditionalExp()
+        {
+            var test = ApplyRule(ParseConditionalOrExp);
+            if (Accept(Sym.QuestionMark)) {
+                var @then = ApplyRule(ParseExp);
+                Expect(Sym.Colon);
+                var @else = ApplyRule(ParseExp);
+
+                return new ConditionalExp(test.StartToken) { Then = @then, Else = @else };
+            }
+
+            return test;
+        }
+
+        public Exp ParseAssignmentExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// exp :=
+        ///     conditional-exp
+        ///     assignment-exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseExp()
+        {
+            var e = ApplyRule(ParseConditionalExp);
+            if (null == e) {
+                e = ApplyRule(ParseAssignmentExp);
+                if (null == e)
+                    result.Error("Expected expression", buf);
+            }
+
+            return e;
+
+
+            //var e = ApplyRule(ParseExp, lexer.Pos);
+            //Token tok;
+            //if (null == e) {
+            //    Expect(Sym.IntLiteral, out tok);
+            //    return new NumericLiteralExp(tok);
+            //}
+
+            //Expect(Sym.Plus);
+            //Expect(Sym.IntLiteral, out tok);
+
+            //return new AdditiveExp(e.StartToken, Op.Plus) { Lhs = e, Rhs = new NumericLiteralExp(tok) };
+        }
+
+        /// <summary>
+        /// qualified-id := id ('.' id)*
+        /// </summary>
+        /// <returns></returns>
         public QualifiedIdExp ParseQualifiedId()
         {
             using (var la = new LookaheadFrame(buf)) {

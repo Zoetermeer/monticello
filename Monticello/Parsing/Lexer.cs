@@ -153,7 +153,12 @@ namespace Monticello.Parsing
         }
 
         public int Line { get; private set; }
+        //TODO: Make line and col work (by counting newlines)
         public int Col { get { return pos; } }
+        /// <summary>
+        /// Gets the index of the current character in the input stream.
+        /// </summary>
+        public int Pos { get { return pos; } set { pos = value; } }
         public string Input { get { return input; } }
         public string RemainingInput
         {
