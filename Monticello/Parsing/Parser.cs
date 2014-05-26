@@ -430,8 +430,24 @@ namespace Monticello.Parsing
         public Exp ParsePrimaryNoArrayCreationExp()
         {
             //TODO: All other cases besides literals
-            return ApplyRule(ParseLiteral);
-            
+            Func<Rule<Exp>, Exp> tryRule = (rule) => 
+                {
+                    using (var la = new LookaheadFrame(lexer)) {
+                        var e = ApplyRule(rule);
+                        if (null != e)
+                            la.Commit();
+
+                        return e;
+                    }
+                };
+
+            Exp exp;
+            if (null != (exp = tryRule(ParseLiteral)))
+                return exp;
+            else if (null != (exp = tryRule(ParseQualifiedId)))
+                return exp;
+
+            return null;
         }
 
         /// <summary>

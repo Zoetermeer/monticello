@@ -33,6 +33,12 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestIds()
+        {
+            AssertExp("System.Foo.Bar", "(qualified-id System.Foo.Bar)");
+        }
+
+        [TestMethod]
         public void TestUsing1()
         {
             string input = "using System.Text;";
@@ -331,6 +337,7 @@ namespace MonticelloTests
         {
             AssertExp("4 = 3", "(assign (int 4) Equal (int 3))");
             AssertExp("4 = 2 + 1", "(assign (int 4) Equal (add (int 2) (int 1)))");
+            AssertExp("x = 3", "(assign (qualified-id x) Equal (int 3))");
         }
 
         [TestMethod]

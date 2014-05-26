@@ -496,6 +496,20 @@ namespace Monticello.Parsing {
 
             return true;
         }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append("(qualified-id ");
+            for (int i = 0; i < Parts.Count; i++) {
+                sb.Append(Parts[i].Spelling.Value);
+                if (i < Parts.Count - 1)
+                    sb.Append(".");
+            }
+
+            sb.Append(")");
+            return sb.ToString();
+        }
     }
 
 
