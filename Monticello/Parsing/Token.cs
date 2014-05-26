@@ -12,7 +12,7 @@ namespace Monticello.Parsing
         public string File { get; set; }
         public int Line { get; set; }
         public int Col { get; set; }
-        public string Value { get; set; }
+        public string Value { get; set; } 
 
         public bool Is(Sym expected)
         {

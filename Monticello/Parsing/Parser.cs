@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Monticello.Parsing
 {
+    [DebuggerDisplay("{Method}")]
+    public delegate T Rule<out T>();
+
     public class Parser
     {
         public class LR : AstNode
@@ -17,43 +22,28 @@ namespace Monticello.Parsing
             }
 
             public bool WasDetected { get; set; }
-        }
 
-        public class MemoEntry 
-        {
-            public MemoEntry(int pos)
+            public override string ToString()
             {
-                Pos = pos;
-                HasResult = false;
+                return string.Format("(lr {0})", WasDetected);
             }
-
-            public MemoEntry(int pos, AstNode node) 
-            {
-                Pos = pos;
-                Ast = node;
-                HasResult = null != node;
-            }
-
-            public bool IsFail { get { return !HasResult; } }
-            public bool HasResult { get; set; }
-            public AstNode Ast { get; set; }
-            public int Pos { get; set; }
         }
 
 
         private string input;
-        private TokenBuffer buf;
         private Lexer lexer;
         private ParseResult result;
-        private Dictionary<Tuple<string, int>, MemoEntry> memoTable = new Dictionary<Tuple<string, int>, MemoEntry>();
+        private MemoTable memoTable = new MemoTable();
 
         public Parser(string input)
         {
             this.input = input;
             this.lexer = new Lexer(input);
-            this.buf = new TokenBuffer(lexer);
             this.result = new ParseResult();
         }
+
+        public int Pos { get { return lexer.Pos; } }
+        public MemoTable MemoTable { get { return memoTable; } }
 
         private bool Expect<T>(
             Func<T> parser, 
@@ -63,7 +53,7 @@ namespace Monticello.Parsing
         {
             ast = parser();
             if (null == ast) {
-                result.Error(errMsg, buf);
+                result.Error(errMsg, lexer);
                 return false;
             }
 
@@ -78,7 +68,7 @@ namespace Monticello.Parsing
 
         private bool Expect(Sym expected, out Token tok)
         {
-            tok = buf.Next();
+            tok = lexer.Read();
             bool match = tok.Is(expected);
             if (!match) {
                 result.Error(string.Format("Expected {0}", expected), tok);
@@ -99,8 +89,8 @@ namespace Monticello.Parsing
 
         private bool Accept(Sym expected)
         {
-            if (buf.Peek().Is(expected)) {
-                buf.Next();
+            if (lexer.PeekToken().Is(expected)) {
+                lexer.Read();
                 return true;
             }
 
@@ -109,8 +99,8 @@ namespace Monticello.Parsing
 
         private bool Accept(Sym expected, out Token tok)
         {
-            if (buf.Peek().Is(expected)) {
-                tok = buf.Next();
+            if (lexer.PeekToken().Is(expected)) {
+                tok = lexer.Read();
                 return true;
             }
 
@@ -118,7 +108,7 @@ namespace Monticello.Parsing
             return false;
         }
 
-        private T GrowLR<T>(Func<T> rule, int p, MemoEntry m) 
+        private T GrowLR<T>(Rule<T> rule, int p, MemoEntry m) 
             where T : AstNode
         {
             //...
@@ -139,13 +129,14 @@ namespace Monticello.Parsing
             return m.Ast as T;
         }
 
-        public T ApplyRule<T>(Func<T> rule)
+        [DebuggerHidden]
+        public T ApplyRule<T>(Rule<T> rule)
             where T : AstNode
         {
             return ApplyRule<T>(rule, lexer.Pos);
         }
 
-        private T ApplyRule<T>(Func<T> rule, int pos) 
+        private T ApplyRule<T>(Rule<T> rule, int pos) 
             where T : AstNode
         {
             MemoEntry m = null;
@@ -361,7 +352,7 @@ namespace Monticello.Parsing
 
         public AttrArgument ParseAttrArgument()
         {
-            using (var la = new LookaheadFrame(buf)) {
+            using (var la = new LookaheadFrame(lexer)) {
                 //Try named-arg first, using two-token lookahead
                 //(a positional arg is just an expression, which can 
                 //be an id)
@@ -396,7 +387,7 @@ namespace Monticello.Parsing
 
         public LiteralExp ParseLiteral()
         {
-            var tok = buf.Next();
+            var tok = lexer.Read();
             switch (tok.Sym) {
                 case Sym.IntLiteral:
                     return new IntLiteralExp(tok);
@@ -418,16 +409,16 @@ namespace Monticello.Parsing
 
         /// <summary>
         /// primary-no-array-creation-exp :=
-        ///     literal
-        ///     simple-name
-        ///     parenthesized-exp
-        ///     member-access
         ///     invocation-exp
+        ///     member-access
         ///     element-access
-        ///     this-access
-        ///     base-access
         ///     post-incr-exp
         ///     post-decr-exp
+        ///     simple-name
+        ///     literal
+        ///     parenthesized-exp
+        ///     this-access
+        ///     base-access
         ///     object-creation-exp
         ///     delegate-creation-exp
         ///     typeof-exp
@@ -440,6 +431,7 @@ namespace Monticello.Parsing
         {
             //TODO: All other cases besides literals
             return ApplyRule(ParseLiteral);
+            
         }
 
         /// <summary>
@@ -521,10 +513,10 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParseUnaryExp()
         {
-            var t = buf.Peek();
+            var t = lexer.PeekToken();
             Func<Op, Exp> un = (op) =>
             {
-                buf.Next();
+                lexer.Read();
                 return new UnaryExp(t, op) { Exp = ApplyRule(ParseUnaryExp) };
             };
 
@@ -798,8 +790,62 @@ namespace Monticello.Parsing
             return test;
         }
 
+        /// <summary>
+        /// assignment-exp :=
+        ///     unary-exp assignment-op exp
+        /// </summary>
+        /// <returns></returns>
         public Exp ParseAssignmentExp()
         {
+            var lhs = ApplyRule(ParseUnaryExp);
+            if (null != lhs) {
+                var opTok = lexer.PeekToken();
+                Op theOp;
+                switch (opTok.Sym) {
+                    case Sym.AssignEqual:
+                        theOp = Op.Equal;
+                        break;
+                    case Sym.PlusEqual:
+                        theOp = Op.AddEqual;
+                        break;
+                    case Sym.MinusEqual:
+                        theOp = Op.SubtractEqual;
+                        break;
+                    case Sym.MultEqual:
+                        theOp = Op.MultiplyEqual;
+                        break;
+                    case Sym.DivEqual:
+                        theOp = Op.DivideEqual;
+                        break;
+                    case Sym.ModEqual:
+                        theOp = Op.ModEqual;
+                        break;
+                    case Sym.BitwiseAndEqual:
+                        theOp = Op.BitwiseAndEqual;
+                        break;
+                    case Sym.BitwiseOrEqual:
+                        theOp = Op.BitwiseOrEqual;
+                        break;
+                    case Sym.BitwiseXorEqual:
+                        theOp = Op.BitwiseXorEqual;
+                        break;
+                    case Sym.LeftShiftEqual:
+                        theOp = Op.LeftShiftEqual;
+                        break;
+                    case Sym.RightShiftEqual:
+                        theOp = Op.RightShiftEqual;
+                        break;
+                    default:
+                        return null;
+                }
+
+                lexer.Read();
+                var rhs = ApplyRule(ParseExp);
+                if (null != lhs) {
+                    return new AssignmentExp(lhs.StartToken, theOp) { Lhs = lhs, Rhs = rhs };
+                }
+            }
+
             return null;
         }
 
@@ -811,27 +857,15 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParseExp()
         {
-            var e = ApplyRule(ParseConditionalExp);
-            if (null == e) {
-                e = ApplyRule(ParseAssignmentExp);
-                if (null == e)
-                    result.Error("Expected expression", buf);
+            using (var la = new LookaheadFrame(lexer)) {
+                var e = ApplyRule(ParseAssignmentExp);
+                if (null != e) {
+                    la.Commit();
+                    return e;
+                }
             }
 
-            return e;
-
-
-            //var e = ApplyRule(ParseExp, lexer.Pos);
-            //Token tok;
-            //if (null == e) {
-            //    Expect(Sym.IntLiteral, out tok);
-            //    return new NumericLiteralExp(tok);
-            //}
-
-            //Expect(Sym.Plus);
-            //Expect(Sym.IntLiteral, out tok);
-
-            //return new AdditiveExp(e.StartToken, Op.Plus) { Lhs = e, Rhs = new NumericLiteralExp(tok) };
+            return ApplyRule(ParseConditionalExp);
         }
 
         /// <summary>
@@ -840,13 +874,13 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public QualifiedIdExp ParseQualifiedId()
         {
-            using (var la = new LookaheadFrame(buf)) {
-                var t = buf.Next();
+            using (var la = new LookaheadFrame(lexer)) {
+                var t = lexer.Read();
                 if (t.Is(Sym.Id)) {
                     var qid = new QualifiedIdExp(t);
                     qid.Parts.Add(new IdExp(t));
                     while (Accept(Sym.Dot)) {
-                        t = buf.Next();
+                        t = lexer.Read();
                         if (t.Is(Sym.Id)) {
                             qid.Parts.Add(new IdExp(t));
                             continue;

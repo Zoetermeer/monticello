@@ -369,6 +369,24 @@ namespace Monticello.Parsing {
         {
 
         }
+
+        public override string ToString()
+        {
+            string opName = "mult";
+            switch (this.Op) {
+                case Parsing.Op.Multiply:
+                    opName = "mult";
+                    break;
+                case Parsing.Op.Divide:
+                    opName = "div";
+                    break;
+                default:
+                    opName = "<unknown op>";
+                    break;
+            }
+
+            return ToString(opName);
+        }
     }
 
 
@@ -381,6 +399,36 @@ namespace Monticello.Parsing {
 
         public Op Op { get; private set; }
         public Exp Exp { get; set; }
+
+        public override string ToString()
+        {
+            string name = "";
+            switch (this.Op) {
+                case Parsing.Op.Plus:
+                    name = "+";
+                    break;
+                case Parsing.Op.Minus:
+                    name = "-";
+                    break;
+                case Parsing.Op.Not:
+                    name = "!";
+                    break;
+                case Parsing.Op.BitwiseNot:
+                    name = "~";
+                    break;
+                case Parsing.Op.PlusPlus:
+                    name = "++";
+                    break;
+                case Parsing.Op.MinusMinus:
+                    name = "--";
+                    break;
+                default:
+                    name = "<unknown unary op>";
+                    break;
+            }
+
+            return string.Format("(unary {0} {1})", name, this.Exp.ToString());
+        }
     }
 
 
@@ -502,7 +550,7 @@ namespace Monticello.Parsing {
 
         public override string ToString()
         {
-            return StartToken.Value;
+            return string.Format("(int {0})", StartToken.Value);
         }
     }
 
@@ -527,6 +575,11 @@ namespace Monticello.Parsing {
         }
 
         public string Value { get { return StartToken.Value; } }
+
+        public override string ToString()
+        {
+            return string.Format("(string \"{0}\")", Value);
+        }
     }
 
 
@@ -563,7 +616,7 @@ namespace Monticello.Parsing {
 
         public override string ToString()
         {
-            return Value.ToString().ToLower();
+            return string.Format("(bool {0})", Value.ToString().ToLower());
         }
     }
 
@@ -573,6 +626,32 @@ namespace Monticello.Parsing {
             : base(start)
         {
 
+        }
+
+        public override string ToString()
+        {
+            return "null";
+        }
+    }
+
+
+    public class AssignmentExp : Exp {
+        public AssignmentExp(Token start, Op assignOp) 
+            : base(start)
+        {
+            this.AssignOp = assignOp;
+        }
+
+        public Exp Lhs { get; set; }
+        public Op AssignOp { get; private set; }
+        public Exp Rhs { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("(assign {0} {1} {2})",
+                Lhs,
+                AssignOp,
+                Rhs);
         }
     }
 }

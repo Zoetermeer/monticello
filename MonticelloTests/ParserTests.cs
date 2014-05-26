@@ -7,6 +7,21 @@ namespace MonticelloTests
     [TestClass]
     public class ParserTests
     {
+        private void AssertExp(string input, string expected)
+        {
+            var parser = new Parser(input);
+            Assert.AreEqual(expected, parser.ParseExp().ToString());
+        }
+
+        [TestMethod]
+        public void TestPosResetsOnFail()
+        {
+            var parser = new Parser("4 + 5");
+            Assert.AreEqual(0, parser.Pos);
+            Assert.IsNull(parser.ApplyRule(parser.ParseAssignmentExp));
+            Assert.AreEqual(0, parser.Pos);
+        }
+
         [TestMethod]
         public void TestQualifiedId()
         {
@@ -268,7 +283,7 @@ namespace MonticelloTests
         }
 
         [TestMethod]
-        public void TestExp1()
+        public void TestLiterals()
         {
             var parser = new Parser("1");
             var e = parser.ParseExp();
@@ -280,10 +295,11 @@ namespace MonticelloTests
         }
 
         [TestMethod]
-        public void TestExp2()
+        public void TestAdditives()
         {
             var parser = new Parser("1 + 2");
             var e = parser.ParseExp();
+            Assert.AreEqual("(add (int 1) (int 2))", e.ToString());
 
             Assert.IsNotNull(e);
             AdditiveExp ae = e as AdditiveExp;
@@ -299,27 +315,65 @@ namespace MonticelloTests
         }
 
         [TestMethod]
-        public void TestExp3()
+        public void TestConditionals()
         {
-            var parser = new Parser("1 + 2 || false");
+            AssertExp(
+                "1 + 2 || false",
+                "(conditional-or (add (int 1) (int 2)) (bool false))");
+
+            AssertExp(
+                "false && true || false",
+                "(conditional-or (conditional-and (bool false) (bool true)) (bool false))");
+        }
+
+        [TestMethod]
+        public void TestAssignments()
+        {
+            AssertExp("4 = 3", "(assign (int 4) Equal (int 3))");
+            AssertExp("4 = 2 + 1", "(assign (int 4) Equal (add (int 2) (int 1)))");
+        }
+
+        [TestMethod]
+        public void TestAdditive2()
+        {
+            AssertExp("4 + 5", "(add (int 4) (int 5))");
+            AssertExp("4+5", "(add (int 4) (int 5))");
+        }
+
+        [TestMethod]
+        public void TestAdditive3()
+        {
+            var parser = new Parser("4 + 5");
+            var e = parser.ParseConditionalExp();
+            Assert.AreEqual("(add (int 4) (int 5))", e.ToString());
+
+            parser = new Parser("4 + 5 + 6");
+            e = parser.ParseConditionalExp();
+            Assert.AreEqual("(add (add (int 4) (int 5)) (int 6))", e.ToString());
+        }
+
+        [TestMethod]
+        public void TestMultiplicative()
+        {
+            var parser = new Parser("4 * 5");
+            var e = parser.ParseAdditiveExp();
+            Assert.AreEqual("(mult (int 4) (int 5))", e.ToString());
+        }
+
+        [TestMethod]
+        public void TestArith()
+        {
+            var parser = new Parser("4 + 5 * 6");
             var e = parser.ParseExp();
-            Assert.AreEqual("(conditional-or (add 1 2) false)", e.ToString());
+            Assert.AreEqual("(add (int 4) (mult (int 5) (int 6)))", e.ToString());
+        }
 
-            var coe = e as ConditionalOrExp;
-            Assert.IsNotNull(coe);
-            var ae = coe.Lhs as AdditiveExp;
-            var fe = coe.Rhs as BooleanLiteralExp;
-
-            Assert.IsNotNull(ae);
-            Assert.IsNotNull(fe);
-
-            Assert.AreEqual(false, fe.Value);
-            var one = ae.Lhs as IntLiteralExp;
-            var two = ae.Rhs as IntLiteralExp;
-            Assert.IsNotNull(one);
-            Assert.IsNotNull(two);
-            Assert.AreEqual(1, one.Value);
-            Assert.AreEqual(2, two.Value);
+        [TestMethod]
+        public void TestUnary1()
+        {
+            var parser = new Parser("+ 33");
+            var e = parser.ParseExp();
+            Assert.AreEqual("(unary + (int 33))", e.ToString());
         }
     }
 }

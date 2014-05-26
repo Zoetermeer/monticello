@@ -49,6 +49,7 @@
     <Compile Include="Parsing\LexicalRule.cs" />
     <Compile Include="Parsing\LexicalRuleTable.cs" />
     <Compile Include="Parsing\LookaheadFrame.cs" />
+    <Compile Include="Parsing\MemoTable.cs" />
     <Compile Include="Parsing\NumericLiteralLexicalRule.cs" />
     <Compile Include="Parsing\Parser.cs" />
     <Compile Include="Parsing\ParseResult.cs" />
@@ -57,7 +58,6 @@
     <Compile Include="Parsing\StringLiteralLexicalRule.cs" />
     <Compile Include="Parsing\Sym.cs" />
     <Compile Include="Parsing\Token.cs" />
-    <Compile Include="Parsing\TokenBuffer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

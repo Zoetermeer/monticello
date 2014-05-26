@@ -18,9 +18,9 @@ namespace Monticello.Parsing {
             return string.Format("Line {0}, col {1}: {2}", line, col, msg);
         }
 
-        private string FormatError(string msg, TokenBuffer buf)
+        private string FormatError(string msg, Lexer lexer)
         {
-            var tok = buf.LastOne();
+            var tok = lexer.LastOne;
             if (null == tok)
                 return msg;
 
@@ -37,9 +37,9 @@ namespace Monticello.Parsing {
             errors.Add(FormatError(msg, line, col));
         }
 
-        public void Error(string msg, TokenBuffer buf)
+        public void Error(string msg, Lexer lexer)
         {
-            errors.Add(FormatError(msg, buf));
+            errors.Add(FormatError(msg, lexer));
         }
     }
 }

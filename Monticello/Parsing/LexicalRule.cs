@@ -24,25 +24,26 @@ namespace Monticello.Parsing {
             bool match = true;
             var tok = new Token() { Line = lexer.Line, Col = lexer.Col, Sym = this.Symbol };
             var sb = new StringBuilder();
-            lexer.PushMark();
-            foreach (char c in Pattern) {
-                if (!lexer.CanRead) {
-                    match = false;
-                    break;
+            using (var la = new LookaheadFrame(lexer)) {
+                foreach (char c in Pattern) {
+                    if (!lexer.CanRead) {
+                        match = false;
+                        break;
+                    }
+
+                    char i = lexer.NextChar();
+                    if (c != i) {
+                        match = false;
+                        break;
+                    }
+
+                    sb.Append(i);
                 }
 
-                char i = lexer.NextChar();
-                if (c != i) {
-                    match = false;
-                    break;
-                }
-
-                sb.Append(i);
-            }
-
-            if (!match) {
-                lexer.PopMark();
-                return null;
+                if (match)
+                    la.Commit();
+                else
+                    return null;
             }
 
             tok.Value = sb.ToString();

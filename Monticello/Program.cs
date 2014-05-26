@@ -8,16 +8,23 @@ using Monticello.Parsing;
 
 namespace Monticello
 {
+    [System.Diagnostics.DebuggerDisplay("{Method}")]
+    public delegate void Foo(int arg);
+
     class Program
     {
-        private static int Foo()
+        static void Whatever(int x)
         {
-            return 2;
+            Console.Write(x);
         }
 
         static void Main(string[] args)
         {
-            
+            Foo f = (i) => Console.WriteLine(i);
+            Foo g = (i) => Console.Write(i);
+            Foo h = Whatever;
+
+            Console.WriteLine(f.ToString());
         }
     }
 }

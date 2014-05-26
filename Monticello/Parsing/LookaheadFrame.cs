@@ -16,6 +16,7 @@ namespace Monticello.Parsing
         public void Commit()
         {
             committed = true;
+            buf.Commit();
         }
 
         public void Dispose()

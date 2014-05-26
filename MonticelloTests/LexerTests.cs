@@ -43,6 +43,55 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestLookahead1()
+        {
+            var lexer = new Lexer("4 + 5");
+            Assert.AreEqual(0, lexer.Pos);
+            using (var la = new LookaheadFrame(lexer)) {
+                lexer.Advance(2);
+            }
+
+            Assert.AreEqual(0, lexer.Pos);
+        }
+
+        [TestMethod]
+        public void TestLookahead2()
+        {
+            var lexer = new Lexer("4 + 5");
+            using (var la = new LookaheadFrame(lexer)) {
+                Assert.AreEqual(0, lexer.Pos);
+                lexer.Read();
+                Assert.AreEqual(1, lexer.Pos);
+                lexer.Read();
+                Assert.AreEqual(3, lexer.Pos);
+            }
+
+            Assert.AreEqual(0, lexer.Pos);
+        }
+
+        [TestMethod]
+        public void TestLookahead3()
+        {
+            var lexer = new Lexer("4 + 5 + 6 + 7");
+            using (var laa = new LookaheadFrame(lexer)) {
+                lexer.Read();
+                lexer.Read();
+                Assert.AreEqual(3, lexer.Pos);
+                using (var lab = new LookaheadFrame(lexer)) {
+                    Assert.AreEqual(3, lexer.Pos);
+                    lexer.Read();
+                    lexer.Read();
+                    Assert.AreEqual(7, lexer.Pos);
+                }
+
+                Assert.AreEqual(3, lexer.Pos);
+                Assert.AreEqual(Sym.IntLiteral, lexer.Read().Sym);
+            }
+
+            Assert.AreEqual(0, lexer.Pos);
+        }
+
+        [TestMethod]
         public void TestNextChar()
         {
             var lexer = new Lexer("foo bar");

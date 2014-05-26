@@ -10,9 +10,10 @@ namespace Monticello.Parsing
     {
         private string input;
         private int pos;
-        private int? markPos = null;
         private LexicalRuleTable table = new LexicalRuleTable();
         private Dictionary<string, LexicalRule> keywordTable = new Dictionary<string, LexicalRule>();
+        private Stack<int> marks = new Stack<int>();
+        private Token lastOne;
 
         /// <summary>
         /// Can be overridden in derived classes (mocks)?
@@ -179,6 +180,8 @@ namespace Monticello.Parsing
             }
         }
 
+        public Token LastOne { get { return lastOne; } }
+
         public Dictionary<string, LexicalRule> KeywordTable
         {
             get { return keywordTable; }
@@ -222,16 +225,20 @@ namespace Monticello.Parsing
 
         public void PushMark()
         {
-            markPos = pos;
+            marks.Push(pos);
         }
 
         public void PopMark()
         {
-            if (!markPos.HasValue)
+            if (marks.Count == 0)
                 throw new InvalidOperationException("Cannot backtrack without a marked position.");
 
-            pos = markPos.GetValueOrDefault();
-            markPos = null;
+            pos = marks.Pop();
+        }
+
+        public void Commit()
+        {
+            marks.Pop();
         }
 
         public char? Peek()
@@ -242,7 +249,24 @@ namespace Monticello.Parsing
             return input[pos];
         }
 
-        public virtual Token Read()
+        public Token PeekToken()
+        {
+            var oldPos = pos;
+            var next = ReadNext();
+            pos = oldPos;
+
+            return next;
+        }
+
+        public Token Read()
+        {
+            var next = ReadNext();
+            lastOne = next;
+
+            return next;
+        }
+
+        protected virtual Token ReadNext()
         {
             SkipWs();
             char? p = Peek();

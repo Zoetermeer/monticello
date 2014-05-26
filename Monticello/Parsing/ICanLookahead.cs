@@ -6,5 +6,6 @@ namespace Monticello.Parsing
     {
         void PushMark();
         void PopMark();
+        void Commit();
     }
 }
