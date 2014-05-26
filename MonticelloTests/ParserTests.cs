@@ -382,5 +382,11 @@ namespace MonticelloTests
             var e = parser.ParseExp();
             Assert.AreEqual("(unary + (int 33))", e.ToString());
         }
+
+        [TestMethod]
+        public void TestInvocation()
+        {
+            AssertExp("Foo()", "(invocation (qualified-id Foo) ())");
+        }
     }
 }

@@ -450,6 +450,53 @@ namespace Monticello.Parsing {
     }
 
 
+    public class InvocationExp : Exp {
+        public InvocationExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public Exp Target { get; set; }
+        public List<ArgumentExp> Args { get; set; }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.AppendFormat("(invocation {0} (", this.Target);
+            foreach (var arg in Args)
+                sb.Append(arg);
+
+            sb.Append("))");
+            return sb.ToString();
+        }
+    }
+
+
+    public class ArgumentExp : Exp {
+        public ArgumentExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public bool IsRef { get; set; }
+        public bool IsOut { get; set; }
+        public Exp Exp { get; set; }
+
+        public override string ToString()
+        {
+            string modstr = "";
+            if (IsRef)
+                modstr = " ref ";
+            else if (IsOut)
+                modstr = " out ";
+
+            return string.Format("(arg{0} {1}", modstr, this.Exp.ToString());
+        }
+    }
+
+
     public class CastExp : Exp {
         public CastExp(Token start)
             : base(start)

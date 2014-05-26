@@ -11,22 +11,49 @@ namespace Monticello.Parsing
     [DebuggerDisplay("{Method}")]
     public delegate T Rule<out T>();
 
+    public class RuleComparer : IComparer<Rule<AstNode>> {
+        public int Compare(Rule<AstNode> x, Rule<AstNode> y)
+        {
+            return x.Method.Name.CompareTo(y.Method.Name);
+        }
+    }
+
     public class Parser
     {
-        public class LR : AstNode
-        {
-            public LR(bool wasDetected) 
+        public class Head {
+            private SortedSet<Rule<AstNode>> involvedSet = new SortedSet<Rule<AstNode>>(new RuleComparer());
+            private SortedSet<Rule<AstNode>> evalSet = new SortedSet<Rule<AstNode>>(new RuleComparer());
+            
+            public Head(Rule<AstNode> rule)
+            {
+                this.Rule = rule;
+            }
+
+            public Rule<AstNode> Rule { get; set; }
+            public SortedSet<Rule<AstNode>> InvolvedSet { get { return involvedSet; } }
+            public SortedSet<Rule<AstNode>> EvalSet 
+            { 
+                get { return evalSet; }
+                set { evalSet = value; }
+            }
+            
+        }
+
+
+        public class LR : AstNode {
+            public LR(AstNode seed, Rule<AstNode> rule, Head head, LR next) 
                 : base(null)
             {
-                this.WasDetected = wasDetected;
+                this.Seed = seed;
+                this.Rule = rule;
+                this.Head = head;
+                this.Next = next;
             }
 
-            public bool WasDetected { get; set; }
-
-            public override string ToString()
-            {
-                return string.Format("(lr {0})", WasDetected);
-            }
+            public AstNode Seed { get; set; }
+            public Rule<AstNode> Rule { get; set; }
+            public Head Head { get; set; }
+            public LR Next { get; set; }
         }
 
 
@@ -34,6 +61,8 @@ namespace Monticello.Parsing
         private Lexer lexer;
         private ParseResult result;
         private MemoTable memoTable = new MemoTable();
+        private LR lrStack;
+        private Dictionary<int, Head> heads = new Dictionary<int, Head>();
 
         public Parser(string input)
         {
@@ -108,13 +137,20 @@ namespace Monticello.Parsing
             return false;
         }
 
-        private T GrowLR<T>(Rule<T> rule, int p, MemoEntry m) 
+        private Tuple<string, int> MemoKey(Rule<AstNode> rule, int pos)
+        {
+            return Tuple.Create(rule.Method.Name, pos);
+        }
+
+        private T GrowLR<T>(Rule<T> rule, int p, MemoEntry m, Head h) 
             where T : AstNode
         {
-            //...
+            heads[p] = h;
             while (true) {
                 lexer.Pos = p;
-                //...
+
+                h.EvalSet = new SortedSet<Rule<AstNode>>(h.InvolvedSet, new RuleComparer());
+
                 var ans = rule();
                 if (null == ans || lexer.Pos <= m.Pos)
                     break;
@@ -123,10 +159,70 @@ namespace Monticello.Parsing
                 m.Pos = lexer.Pos;
             }
 
-            //...
+            heads[p] = null;
 
             lexer.Pos = m.Pos;
             return m.Ast as T;
+        }
+
+        private T LRAnswer<T>(Rule<T> rule, int p, MemoEntry m)
+            where T : AstNode
+        {
+            var lr = m.Ast as LR;
+            var h = lr.Head;
+            if (h.Rule != rule) 
+                return lr.Seed as T;
+
+            m.Ast = lr.Seed;
+            if (m.Ast == null)
+                return null;
+
+            return GrowLR(rule, p, m, h);
+        }
+
+        private MemoEntry Recall<T>(Rule<T> rule, int p)
+            where T : AstNode
+        {
+            MemoEntry m = null;
+            memoTable.TryGetValue(MemoKey(rule, p), out m);
+            Head h = null;
+            heads.TryGetValue(p, out h);
+            
+            //If not growing a seed parse, just return what is stored 
+            //in the memo table
+            if (null == h) {
+                return m;
+            }
+
+            //Do not evaluate any rule that is not 
+            //involved in this left recursion
+            if (null == m && rule != h.Rule && !h.InvolvedSet.Contains(rule))
+                return new MemoEntry(p);
+
+            //Allow involved rules to be evaluated, 
+            //but only once, during a seed-growing iteration
+            if (h.EvalSet.Contains(rule)) {
+                h.EvalSet.Remove(rule);
+                var ans = rule();
+                m.Ast = ans;
+                m.Pos = lexer.Pos;
+            }
+
+            return m;
+        }
+
+        private void SetupLR<T>(Rule<T> rule, LR l)
+            where T : AstNode
+        {
+            if (null == l.Head)
+                l.Head = new Head(rule);
+
+            var s = lrStack;
+            while (s.Head != l.Head) {
+                s.Head = l.Head;
+                l.Head.InvolvedSet.Add(s.Rule);
+                s = s.Next;
+            }
         }
 
         [DebuggerHidden]
@@ -139,30 +235,38 @@ namespace Monticello.Parsing
         private T ApplyRule<T>(Rule<T> rule, int pos) 
             where T : AstNode
         {
-            MemoEntry m = null;
+            MemoEntry m = Recall(rule, pos);
+            var key = MemoKey(rule, pos); 
             LR lr;
-            string ruleName = rule.Method.Name;
-            var key = Tuple.Create(ruleName, pos);
-            if (!memoTable.TryGetValue(key, out m)) {
-                lr = new LR(false);
-                m = new MemoEntry(pos, lr); //Failure
+            if (null == m) {
+                //Create a new LR and push it onto 
+                //the rule invocation stack
+                lr = new LR(null, rule, null, lrStack);
+                lrStack = lr;
+
+                //Memoize lr, then evaluate rule
+                m = new MemoEntry(pos, lr);
                 memoTable.Add(key, m);
 
                 var ans = rule();
-                m.Ast = ans;
-                m.Pos = lexer.Pos;
-                if (lr.WasDetected && null != ans) {
-                    return GrowLR(rule, pos, m);
-                }
 
-                return ans;
+                //Pop lr off the rule invocation stack
+                lrStack = lrStack.Next;
+                m.Pos = lexer.Pos;
+                if (lr.Head != null) {
+                    lr.Seed = ans;
+                    return LRAnswer(rule, pos, m);
+                } else {
+                    m.Ast = ans;
+                    return ans;
+                }
             }
 
             lexer.Pos = m.Pos;
             lr = m.Ast as LR;
             if (null != lr) {
-                lr.WasDetected = true;
-                return null;
+                SetupLR(rule, lr);
+                return lr.Seed as T;
             }
 
             return m.Ast as T;
@@ -408,6 +512,78 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// argument :=
+        ///     'ref' exp
+        ///     'out' exp
+        ///     exp
+        /// </summary>
+        /// <returns></returns>
+        public ArgumentExp ParseArgument()
+        {
+            bool isRef = false, isOut = false;
+            Token t = lexer.PeekToken(), start = null;
+            switch (t.Sym) {
+                case Sym.KwRef:
+                    isRef = true;
+                    start = t;
+                    break;
+                case Sym.KwOut:
+                    isOut = true;
+                    start = t;
+                    break;
+            }
+
+            var e = ApplyRule(ParseExp);
+            if (null != e)
+                return new ArgumentExp(start ?? e.StartToken) { Exp = e, IsOut = isOut, IsRef = isRef };
+
+            return null;
+        }
+
+        /// <summary>
+        /// argument-list := 
+        ///     argument (',' argument)*
+        ///     ε
+        /// </summary>
+        /// <returns></returns>
+        public List<ArgumentExp> ParseArgumentList()
+        {
+            var args = new List<ArgumentExp>();
+            ArgumentExp ae;
+            if (Accept(ParseArgument, out ae)) {
+                args.Add(ae);
+                while (Accept(Sym.Comma)) {
+                    //Try to continue as long as we get 
+                    //commas
+                    if (Expect(ParseArgument, "Expected argument expression", out ae))
+                        args.Add(ae);
+                }
+            }
+
+            return args;
+        }
+
+        /// <summary>
+        /// invocation-exp :=
+        ///     primary-exp '(' argument-list ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseInvocationExp()
+        {
+            var e = ApplyRule(ParsePrimaryExp);
+            if (null != e) {
+                if (Accept(Sym.OpenParen)) {
+                    var args = ParseArgumentList();
+                    if (Accept(Sym.CloseParen)) {
+                        return new InvocationExp(e.StartToken) { Target = e, Args = args };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// primary-no-array-creation-exp :=
         ///     invocation-exp
         ///     member-access
@@ -442,6 +618,8 @@ namespace Monticello.Parsing
                 };
 
             Exp exp;
+            if (null != (exp = tryRule(ParseInvocationExp)))
+                return exp;
             if (null != (exp = tryRule(ParseLiteral)))
                 return exp;
             else if (null != (exp = tryRule(ParseQualifiedId)))
