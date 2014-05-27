@@ -798,6 +798,35 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// default-value-exp := 'default' '(' type ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseDefaultValueExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// anon-function-sig :=
+        ///     explicit-anon-function-sig
+        ///     implicit-anon-function-sig
+        /// </summary>
+        /// <returns></returns>
+        public AnonFunctionSig ParseAnonFunctionSig()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// anon-method-exp :=
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseAnonMethodExp()
+        {
+            return null;
+        }
+
+        /// <summary>
         /// primary-no-array-creation-exp :=
         ///     invocation-exp
         ///     member-access
@@ -815,6 +844,8 @@ namespace Monticello.Parsing
         ///     sizeof-exp
         ///     checked-exp
         ///     unchecked-exp
+        ///     default-value-exp
+        ///     anon-method-exp
         /// </summary>
         /// <returns></returns>
         public Exp ParsePrimaryNoArrayCreationExp()
@@ -1282,6 +1313,30 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// lambda-exp :=
+        ///     anon-function-sig '=>' anon-function-body
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseLambdaExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// query-exp := from-clause query-body
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseQueryExp()
+        {
+            return null;
+        }
+
+        public Exp ParseNonAssignmentExp()
+        {
+            return ApplyRule(ParseConditionalExp);
+        }
+
+        /// <summary>
         /// exp :=
         ///     conditional-exp
         ///     assignment-exp
@@ -1297,7 +1352,7 @@ namespace Monticello.Parsing
                 }
             }
 
-            return ApplyRule(ParseConditionalExp);
+            return ApplyRule(ParseNonAssignmentExp);
         }
 
         /// <summary>

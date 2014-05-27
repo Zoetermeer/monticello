@@ -617,7 +617,7 @@ namespace Monticello.Parsing {
         protected BaseAccessExp(Token start)
             : base(start)
         {
-
+            
         }
     }
 
@@ -663,6 +663,32 @@ namespace Monticello.Parsing {
         }
     }
 
+
+    public abstract class AnonFunctionSig : Exp {
+        public AnonFunctionSig(Token start) 
+            : base(start)
+        {
+
+        }
+    }
+
+
+    public class ExplicitAnonFunctionSig : AnonFunctionSig {
+        public ExplicitAnonFunctionSig(Token start)
+            : base(start)
+        {
+
+        }
+    }
+
+
+    public class ImplicitAnonFunctionSig : AnonFunctionSig {
+        public ImplicitAnonFunctionSig(Token start)
+            : base(start)
+        {
+
+        }
+    }
 
     public class IdExp : Exp {
         public IdExp(Token spelling)
