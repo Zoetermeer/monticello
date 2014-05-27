@@ -27,6 +27,14 @@ namespace Monticello.Common {
             sb.Append(name);
             sb.Append(" ");
             for (int i = 0; i < args.Length; i++) {
+                //Skip if this arg is the empty string
+                object o = args[i];
+                if (null != o) {
+                    var s = o as string;
+                    if (null != s && string.IsNullOrEmpty(s))
+                        continue;
+                }
+
                 sb.Append(args[i] ?? "<null>");
                 if (i < args.Length - 1)
                     sb.Append(" ");

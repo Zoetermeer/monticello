@@ -675,6 +675,30 @@ namespace Monticello.Parsing
             return null;
         }
 
+        public Exp ParsePostIncrExp()
+        {
+            var e = ApplyRule(ParsePrimaryExp);
+            if (null != e) {
+                if (Accept(Sym.PlusPlus)) {
+                    return new PostIncrExp(e.StartToken) { Exp = e };
+                }
+            }
+
+            return null;
+        }
+
+        public Exp ParsePostDecrExp()
+        {
+            var e = ApplyRule(ParsePrimaryExp);
+            if (null != e) {
+                if (Accept(Sym.MinusMinus)) {
+                    return new PostDecrExp(e.StartToken) { Exp = e };
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// primary-no-array-creation-exp :=
         ///     invocation-exp
@@ -715,6 +739,10 @@ namespace Monticello.Parsing
             if (null != (exp = tryRule(ParseMemberAccessExp)))
                 return exp;
             if (null != (exp = tryRule(ParseElementAccessExp)))
+                return exp;
+            if (null != (exp = tryRule(ParsePostIncrExp)))
+                return exp;
+            if (null != (exp = tryRule(ParsePostDecrExp)))
                 return exp;
             if (null != (exp = tryRule(ParseLiteral)))
                 return exp;

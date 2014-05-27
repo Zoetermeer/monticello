@@ -380,13 +380,15 @@ namespace MonticelloTests
         {
             string input = "Foo()";
             var parser = new Parser(input);
-            //Exp e = parser.ParseInvocationExp();
-            //Assert.IsNotNull(e);
-            //Assert.AreEqual("(invocation (id Foo) ())", e.ToString());
-            //AssertExp(input, "(invocation (id Foo) ())");
 
             input = "Foo().Bar()";
             AssertExp(input, "(invocation (member-access (invocation (id Foo) ()) (id Bar)) ())");
+        }
+
+        [TestMethod]
+        public void TestInvocation2()
+        {
+            AssertExp("Bar(1, x)", "(invocation (id Bar) ((arg (int 1)) (arg (id x))))");
         }
 
         [TestMethod]
@@ -407,6 +409,15 @@ namespace MonticelloTests
             //Assert.IsNotNull(e);
             //Assert.AreEqual(expected, e.ToString());
             AssertExp(input, expected);
+        }
+
+        [TestMethod]
+        public void TestIncrDecrExps()
+        {
+            AssertExp("x++", "(post-incr (id x))");
+            AssertExp("x--", "(post-decr (id x))");
+            AssertExp("foo.x++", "(post-incr (member-access (id foo) (id x)))");
+            AssertExp("foo.bar()--", "(post-decr (invocation (member-access (id foo) (id bar)) ()))");
         }
     }
 }

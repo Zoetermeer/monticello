@@ -522,8 +522,7 @@ namespace Monticello.Parsing {
         {
             var sb = new StringBuilder();
             sb.AppendFormat("(invocation {0} (", this.Target);
-            foreach (var arg in Args)
-                sb.Append(arg);
+            sb.AppendItems(Args);
 
             sb.Append("))");
             return sb.ToString();
@@ -550,7 +549,8 @@ namespace Monticello.Parsing {
             else if (IsOut)
                 modstr = " out ";
 
-            return string.Format("(arg{0} {1}", modstr, this.Exp.ToString());
+            return StringFormatting.SExp("arg", modstr, this.Exp);
+            //return string.Format("(arg{0} {1}", modstr, this.Exp.ToString());
         }
     }
 
@@ -564,6 +564,38 @@ namespace Monticello.Parsing {
 
         public QualifiedIdExp TargetType { get; set; }
         public Exp Exp { get; set; }
+    }
+
+
+    public class PostIncrExp : Exp {
+        public PostIncrExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public Exp Exp { get; set; }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("post-incr", this.Exp);
+        }
+    }
+
+
+    public class PostDecrExp : Exp {
+        public PostDecrExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public Exp Exp { get; set; }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("post-decr", this.Exp);
+        }
     }
 
 
