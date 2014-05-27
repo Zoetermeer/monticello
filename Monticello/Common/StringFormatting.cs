@@ -25,7 +25,8 @@ namespace Monticello.Common {
             var sb = new StringBuilder();
             sb.Append("(");
             sb.Append(name);
-            sb.Append(" ");
+            if (args.Length > 0)
+                sb.Append(" ");
             for (int i = 0; i < args.Length; i++) {
                 //Skip if this arg is the empty string
                 object o = args[i];

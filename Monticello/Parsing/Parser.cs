@@ -700,6 +700,104 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// this-access := 'this'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseThisAccessExp()
+        {
+            Token t;
+            if (Accept(Sym.KwThis, out t))
+                return new ThisAccessExp(t);
+
+            return null;
+        }
+
+        /// <summary>
+        /// base-access :=
+        ///     'base' . id                --> base-member-access 
+        ///     'base' '[' exp-list ']'    --> base-indexer-access
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseBaseAccessExp()
+        {
+            Token t;
+            if (Accept(Sym.KwBase, out t)) {
+                if (Accept(Sym.Dot)) {
+                    IdExp id;
+                    if (Expect(ParseId, "Expected identifier", out id)) {
+                        return new BaseMemberAccessExp(t) { Member = id };
+                    }
+                } else if (Accept(Sym.OpenIndexer)) {
+                    Exp es;
+                    if (Expect(ParseExpList, "Expected expression(s)", out es)) {
+                        return new BaseIndexerAccessExp(t, es);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// object-creation :=
+        ///     'new' type '(' (arg-list)? ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseObjectCreationExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// delegate-creation :=
+        ///     'new' delegate-type '(' exp ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseDelegateCreationExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// typeof-exp :=
+        ///     'typeof' '(' type ')'
+        ///     'typeof' '(' 'void' ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseTypeofExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// sizeof-exp := 'sizeof' '(' unmanaged-type ')'
+        /// Policy question: do we want to support this?
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseSizeofExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// checked-exp := 'checked' '(' exp ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseCheckedExp()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// unchecked-exp := 'unchecked' '(' exp ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseUncheckedExp()
+        {
+            return null;
+        }
+
+        /// <summary>
         /// primary-no-array-creation-exp :=
         ///     invocation-exp
         ///     member-access
@@ -743,6 +841,22 @@ namespace Monticello.Parsing
             if (null != (exp = tryRule(ParsePostIncrExp)))
                 return exp;
             if (null != (exp = tryRule(ParsePostDecrExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseThisAccessExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseBaseAccessExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseObjectCreationExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseDelegateCreationExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseTypeofExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseSizeofExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseCheckedExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseUncheckedExp)))
                 return exp;
             if (null != (exp = tryRule(ParseLiteral)))
                 return exp;

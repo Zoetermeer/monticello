@@ -599,6 +599,71 @@ namespace Monticello.Parsing {
     }
 
 
+    public class ThisAccessExp : Exp {
+        public ThisAccessExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("this-access");
+        }
+    }
+
+
+    public abstract class BaseAccessExp : Exp {
+        protected BaseAccessExp(Token start)
+            : base(start)
+        {
+
+        }
+    }
+
+
+    public class BaseMemberAccessExp : BaseAccessExp {
+        public BaseMemberAccessExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public IdExp Member { get; set; }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("base-member-access", this.Member);
+        }
+    }
+
+
+    public class BaseIndexerAccessExp : BaseAccessExp {
+        public BaseIndexerAccessExp(Token start, Exp es)
+            : base(start)
+        {
+            var elist = es as ExpList;
+            if (null != elist)
+                this.IndexerExps = elist;
+            else this.IndexerExps = new ExpList(es.StartToken) { Exps = new List<Exp>() { es } };
+        }
+
+        /// <summary>
+        /// An exp-list is either an exp or an exp-list.
+        /// </summary>
+        public ExpList IndexerExps { get; private set; }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append("(base-indexer-access (");
+            sb.AppendItems(this.IndexerExps.Exps);
+            sb.Append("))");
+            return sb.ToString();
+        }
+    }
+
+
     public class IdExp : Exp {
         public IdExp(Token spelling)
             : base(spelling)

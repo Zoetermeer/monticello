@@ -419,5 +419,20 @@ namespace MonticelloTests
             AssertExp("foo.x++", "(post-incr (member-access (id foo) (id x)))");
             AssertExp("foo.bar()--", "(post-decr (invocation (member-access (id foo) (id bar)) ()))");
         }
+
+        [TestMethod]
+        public void TestThisAccess()
+        {
+            AssertExp("this", "(this-access)");
+            AssertExp("this.foo()", "(invocation (member-access (this-access) (id foo)) ())");
+            AssertExp("this.xyz", "(member-access (this-access) (id xyz))");
+        }
+
+        [TestMethod]
+        public void TestBaseAccess()
+        {
+            AssertExp("base.whatever", "(base-member-access (id whatever))");
+            AssertExp("base[1, 2]", "(base-indexer-access ((int 1) (int 2)))");
+        }
     }
 }
