@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Monticello.Common;
 
 namespace Monticello.Parsing
 {
@@ -54,6 +55,11 @@ namespace Monticello.Parsing
             public Rule<AstNode> Rule { get; set; }
             public Head Head { get; set; }
             public LR Next { get; set; }
+
+            public override string ToString()
+            {
+                return StringFormatting.SExp("lr", Seed, Rule, Head, (null == Next ? "<null>" : "more lrs..."));
+            }
         }
 
 
@@ -214,6 +220,10 @@ namespace Monticello.Parsing
         private void SetupLR<T>(Rule<T> rule, LR l)
             where T : AstNode
         {
+            #region Contracts
+            Contract.Requires(null != lrStack);
+            #endregion
+
             if (null == l.Head)
                 l.Head = new Head(rule);
 
@@ -235,8 +245,9 @@ namespace Monticello.Parsing
         private T ApplyRule<T>(Rule<T> rule, int pos) 
             where T : AstNode
         {
+            var key = MemoKey(rule, pos);
+            Debug.WriteLine("Apply rule ({0}): {1}", pos, key.Item1);
             MemoEntry m = Recall(rule, pos);
-            var key = MemoKey(rule, pos); 
             LR lr;
             if (null == m) {
                 //Create a new LR and push it onto 
@@ -526,10 +537,12 @@ namespace Monticello.Parsing
                 case Sym.KwRef:
                     isRef = true;
                     start = t;
+                    lexer.Read();
                     break;
                 case Sym.KwOut:
                     isOut = true;
                     start = t;
+                    lexer.Read();
                     break;
             }
 
@@ -563,6 +576,53 @@ namespace Monticello.Parsing
             return args;
         }
 
+
+        /// <summary>
+        /// exp-list :=
+        ///     exp
+        ///     exp-list ',' exp
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseExpList()
+        {
+            var es = new ExpList(lexer.PeekToken());
+            var e = ApplyRule(ParseExp);
+            if (null != e) {
+                es.Exps.Add(e);
+                while (Accept(Sym.Comma)) {
+                    e = ApplyRule(ParseExp);
+                    if (null != e)
+                        es.Exps.Add(e);
+                }
+
+                return es;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// element-access-exp :=
+        ///     primary-no-array-creation-exp '[' exp-list ']'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseElementAccessExp()
+        {
+            //TODO: This rule causes a problem, because we can only 
+            //grow one left-recursive (indirect) rule at a time.  
+            //But trying to apply this one causes primary-no-array-creation-exp 
+            //to be the current indirect LR rule being grown, while primary-exp 
+            //is already the current one (via invocation-exp/member-access-exp). 
+            //How do we solve this? 
+
+            //var e = ApplyRule(ParsePrimaryNoArrayCreationExp);
+            //if (null != e && Accept(Sym.OpenIndexer)) {
+
+            //}
+
+            return null;
+        }
+
         /// <summary>
         /// invocation-exp :=
         ///     primary-exp '(' argument-list ')'
@@ -576,6 +636,38 @@ namespace Monticello.Parsing
                     var args = ParseArgumentList();
                     if (Accept(Sym.CloseParen)) {
                         return new InvocationExp(e.StartToken) { Target = e, Args = args };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// member-access-exp :=
+        ///     primary-exp '.' id
+        ///     predefined-type '.' id
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseMemberAccessExp()
+        {
+            var e = ApplyRule(ParsePrimaryExp);
+            if (null != e) {
+                if (Accept(Sym.Dot)) {
+                    IdExp ide;
+                    if (Expect(ParseId, "Expected identifier", out ide)) {
+                        return new MemberAccessExp(e.StartToken) { Target = e, Member = ide };
+                    }
+                }
+            }
+
+            //Second alternative
+            e = ApplyRule(ParsePredefinedType);
+            if (null != e) {
+                if (Expect(Sym.Dot)) {
+                    IdExp ide;
+                    if (Expect(ParseId, "Expected identifier", out ide)) {
+                        return new MemberAccessExp(e.StartToken) { Target = e, Member = ide };
                     }
                 }
             }
@@ -620,9 +712,13 @@ namespace Monticello.Parsing
             Exp exp;
             if (null != (exp = tryRule(ParseInvocationExp)))
                 return exp;
+            if (null != (exp = tryRule(ParseMemberAccessExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseElementAccessExp)))
+                return exp;
             if (null != (exp = tryRule(ParseLiteral)))
                 return exp;
-            else if (null != (exp = tryRule(ParseQualifiedId)))
+            else if (null != (exp = tryRule(ParseId)))
                 return exp;
 
             return null;
@@ -1060,6 +1156,90 @@ namespace Monticello.Parsing
             }
 
             return ApplyRule(ParseConditionalExp);
+        }
+
+        /// <summary>
+        /// predefined-type :=
+        ///     bool | byte | char | decimal | double | float | int | long
+        ///     object | sbyte | short | string | uint | ulong | ushort
+        /// </summary>
+        /// <returns></returns>
+        public PredefinedTypeExp ParsePredefinedType()
+        {
+            var t = lexer.PeekToken();
+            PredefinedType type = PredefinedType.Unknown;
+            bool valid = true;
+            switch (t.Sym) {
+                case Sym.KwBool:
+                    type = PredefinedType.Bool;
+                    break;
+                case Sym.KwByte:
+                    type = PredefinedType.Byte;
+                    break;
+                case Sym.KwChar:
+                    type = PredefinedType.Char;
+                    break;
+                case Sym.KwDecimal:
+                    type = PredefinedType.Decimal;
+                    break;
+                case Sym.KwDouble:
+                    type = PredefinedType.Double;
+                    break;
+                case Sym.KwFloat:
+                    type = PredefinedType.Float;
+                    break;
+                case Sym.KwInt:
+                    type = PredefinedType.Int;
+                    break;
+                case Sym.KwLong:
+                    type = PredefinedType.Long;
+                    break;
+                case Sym.KwObject:
+                    type = PredefinedType.Object;
+                    break;
+                case Sym.KwSbyte:
+                    type = PredefinedType.Sbyte;
+                    break;
+                case Sym.KwShort:
+                    type = PredefinedType.Short;
+                    break;
+                case Sym.KwString:
+                    type = PredefinedType.String;
+                    break;
+                case Sym.KwUint:
+                    type = PredefinedType.Uint;
+                    break;
+                case Sym.KwUlong:
+                    type = PredefinedType.Ulong;
+                    break;
+                case Sym.KwUshort:
+                    type = PredefinedType.Ushort;
+                    break;
+                default:
+                    valid = false;
+                    break;
+            }
+
+            if (valid) {
+                lexer.Read();
+                return new PredefinedTypeExp(t) { Type = type };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// id-exp := id
+        /// </summary>
+        /// <returns></returns>
+        public IdExp ParseId()
+        {
+            Token idt;
+            if (Accept(Sym.Id, out idt)) {
+                return new IdExp(idt);
+            }
+
+            return null;
         }
 
         /// <summary>

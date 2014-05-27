@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Monticello.Common;
 
 namespace Monticello.Parsing {
     public abstract class AstNode {
@@ -52,6 +53,26 @@ namespace Monticello.Parsing {
         BitwiseXorEqual, 
         LeftShiftEqual, 
         RightShiftEqual
+    }
+
+
+    public enum PredefinedType {
+        Unknown, 
+        Bool, 
+        Byte, 
+        Char, 
+        Decimal, 
+        Double, 
+        Float, 
+        Int, 
+        Long, 
+        Object, 
+        Sbyte, 
+        Short, 
+        String, 
+        Uint, 
+        Ulong, 
+        Ushort
     }
 
 
@@ -219,6 +240,26 @@ namespace Monticello.Parsing {
             : base(start)
         {
 
+        }
+    }
+
+
+    public class ExpList : Exp {
+        public ExpList(Token start) 
+            : base(start)
+        {
+            this.Exps = new List<Exp>();
+        }
+
+        public List<Exp> Exps { get; set; }
+
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append("(exp-list (");
+            sb.AppendItems(items: this.Exps);
+            sb.Append("))");
+            return sb.ToString();
         }
     }
 
@@ -450,6 +491,23 @@ namespace Monticello.Parsing {
     }
 
 
+    public class MemberAccessExp : Exp {
+        public MemberAccessExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public Exp Target { get; set; }
+        public IdExp Member { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("(member-access {0} {1})", Target, Member);
+        }
+    }
+
+
     public class InvocationExp : Exp {
         public InvocationExp(Token start)
             : base(start)
@@ -517,6 +575,11 @@ namespace Monticello.Parsing {
         }
 
         public Token Spelling { get; set; }
+
+        public override string ToString()
+        {
+            return string.Format("(id {0})", Spelling.Value);
+        }
     }
 
 
@@ -557,6 +620,17 @@ namespace Monticello.Parsing {
             sb.Append(")");
             return sb.ToString();
         }
+    }
+
+
+    public class PredefinedTypeExp : Exp {
+        public PredefinedTypeExp(Token start) 
+            : base(start)
+        {
+
+        }
+
+        public PredefinedType Type { get; set; }
     }
 
 

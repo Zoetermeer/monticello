@@ -41,6 +41,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Common\StringFormatting.cs" />
     <Compile Include="Parsing\Ast.cs" />
     <Compile Include="Parsing\CharLiteralLexicalRule.cs" />
     <Compile Include="Parsing\ICanLookahead.cs" />
@@ -63,6 +64,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

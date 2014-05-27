@@ -13,13 +13,10 @@ namespace MonticelloTests
             Assert.AreEqual(expected, parser.ParseExp().ToString());
         }
 
-        [TestMethod]
-        public void TestPosResetsOnFail()
+        private void AssertPrimaryExp(string input, string expected)
         {
-            var parser = new Parser("4 + 5");
-            Assert.AreEqual(0, parser.Pos);
-            Assert.IsNull(parser.ApplyRule(parser.ParseAssignmentExp));
-            Assert.AreEqual(0, parser.Pos);
+            var parser = new Parser(input);
+            Assert.AreEqual(expected, parser.ParsePrimaryNoArrayCreationExp().ToString());
         }
 
         [TestMethod]
@@ -30,12 +27,6 @@ namespace MonticelloTests
 
             Assert.IsNotNull(id);
             Assert.IsTrue(id.PartsAre("System", "Collections", "Generic", "List"));
-        }
-
-        [TestMethod]
-        public void TestIds()
-        {
-            AssertExp("System.Foo.Bar", "(qualified-id System.Foo.Bar)");
         }
 
         [TestMethod]
@@ -291,13 +282,8 @@ namespace MonticelloTests
         [TestMethod]
         public void TestLiterals()
         {
-            var parser = new Parser("1");
-            var e = parser.ParseExp();
-
-            Assert.IsNotNull(e);
-            IntLiteralExp le = e as IntLiteralExp;
-            Assert.IsNotNull(le);
-            Assert.AreEqual(1, le.Value);
+            AssertExp("1", "(int 1)");
+            AssertExp("true", "(bool true)");
         }
 
         [TestMethod]
@@ -337,7 +323,7 @@ namespace MonticelloTests
         {
             AssertExp("4 = 3", "(assign (int 4) Equal (int 3))");
             AssertExp("4 = 2 + 1", "(assign (int 4) Equal (add (int 2) (int 1)))");
-            AssertExp("x = 3", "(assign (qualified-id x) Equal (int 3))");
+            AssertExp("x = 3", "(assign (id x) Equal (int 3))");
         }
 
         [TestMethod]
@@ -386,7 +372,41 @@ namespace MonticelloTests
         [TestMethod]
         public void TestInvocation()
         {
-            AssertExp("Foo()", "(invocation (qualified-id Foo) ())");
+            AssertExp("foo.Bar()", "(invocation (member-access (id foo) (id Bar)) ())");
+        }
+
+        [TestMethod]
+        public void TestInvocation1()
+        {
+            string input = "Foo()";
+            var parser = new Parser(input);
+            //Exp e = parser.ParseInvocationExp();
+            //Assert.IsNotNull(e);
+            //Assert.AreEqual("(invocation (id Foo) ())", e.ToString());
+            //AssertExp(input, "(invocation (id Foo) ())");
+
+            input = "Foo().Bar()";
+            AssertExp(input, "(invocation (member-access (invocation (id Foo) ()) (id Bar)) ())");
+        }
+
+        [TestMethod]
+        public void TestExpList()
+        {
+            var parser = new Parser("1, 2, 3");
+            var e = parser.ParseExpList();
+            Assert.AreEqual("(exp-list ((int 1) (int 2) (int 3)))", e.ToString());
+        }
+
+        [TestMethod]
+        public void TestMemberAccess()
+        {
+            string input = "Foo.Bar";
+            string expected = "(member-access (id Foo) (id Bar))";
+            var parser = new Parser(input);
+            var e = parser.ParseMemberAccessExp();
+            //Assert.IsNotNull(e);
+            //Assert.AreEqual(expected, e.ToString());
+            AssertExp(input, expected);
         }
     }
 }

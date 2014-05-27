@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -241,6 +242,7 @@ namespace Monticello.Parsing
             marks.Pop();
         }
 
+        [Pure]
         public char? Peek()
         {
             if (pos > input.Length - 1)
@@ -249,6 +251,7 @@ namespace Monticello.Parsing
             return input[pos];
         }
 
+        [Pure]
         public Token PeekToken()
         {
             var oldPos = pos;
@@ -265,7 +268,7 @@ namespace Monticello.Parsing
 
             return next;
         }
-
+        
         protected virtual Token ReadNext()
         {
             SkipWs();

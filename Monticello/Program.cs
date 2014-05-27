@@ -20,11 +20,9 @@ namespace Monticello
 
         static void Main(string[] args)
         {
-            Foo f = (i) => Console.WriteLine(i);
-            Foo g = (i) => Console.Write(i);
-            Foo h = Whatever;
-
-            Console.WriteLine(f.ToString());
+            bool b = object.Equals(null, new object());
+            Console.WriteLine(b);
+            Console.ReadLine();
         }
     }
 }
