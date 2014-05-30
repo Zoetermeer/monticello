@@ -501,6 +501,8 @@ namespace MonticelloTests
             AssertExp("new object(42)", "(new-instance (predefined-type-name object) ((arg (int 42))) ())");
             AssertExp("new Foo(32) { Name = \"foobar\" }",
                 "(new-instance (user-type-name ((Foo ()))) ((arg (int 32))) ((member-initializer (id Name) (string \"foobar\"))))");
+            AssertExp("new Foo { Name = \"foobar\" }",
+                "(new-instance (user-type-name ((Foo ()))) () ((member-initializer (id Name) (string \"foobar\"))))");
         }
     }
 }

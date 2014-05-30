@@ -790,7 +790,7 @@ namespace Monticello.Parsing
 
         /// <summary>
         /// new-instance-creation :=
-        ///     'new' type '(' arg-list ')' (object-or-collection-initializer)?
+        ///     'new' type ('(' arg-list ')')? (object-or-collection-initializer)?
         /// </summary>
         /// <returns></returns>
         public NewInstanceCreationExp ParseNewInstanceCreationExp()
@@ -799,36 +799,18 @@ namespace Monticello.Parsing
             if (Accept(Sym.KwNew, out start)) {
                 var ty = ApplyRule(ParseTypeName);
                 if (null != ty) {
+                    var args = new List<ArgumentExp>();
                     if (Accept(Sym.OpenParen)) {
-                        var args = ParseArgumentList();
-                        if (Expect(Sym.CloseParen)) {
-                            var initArgs = ParseObjectInitializer();
-                            return new NewInstanceCreationExp(start) { Type = ty, CtorArgs = args, InitArgs = initArgs };
-                        }
+                        args.AddRange(ParseArgumentList());
+                        Expect(Sym.CloseParen);
+                        //Break here if no closing paren?
                     }
+
+                    var initArgs = ParseObjectInitializer();
+                    return new NewInstanceCreationExp(start) { Type = ty, CtorArgs = args, InitArgs = initArgs };
                 }
             }
 
-            return null;
-        }
-
-        /// <summary>
-        /// object-creation :=
-        ///     'new' type '(' (arg-list)? ')' (obj-or-collection-initializer)?
-        /// </summary>
-        /// <returns></returns>
-        public Exp ParseObjectCreationExp()
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// delegate-creation :=
-        ///     'new' delegate-type '(' exp ')'
-        /// </summary>
-        /// <returns></returns>
-        public Exp ParseDelegateCreationExp()
-        {
             return null;
         }
 
@@ -981,7 +963,7 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParsePrimaryNoArrayCreationExp()
         {
-            Func<Rule<Exp>, Exp> tryRule = (rule) => 
+            Func<Rule<Exp>, Exp> tryRule = rule => 
                 {
                     using (var la = new LookaheadFrame(lexer)) {
                         var e = ApplyRule(rule);
