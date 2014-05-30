@@ -296,6 +296,23 @@ namespace MonticelloTests
             AssertTypeName("global::System.Int32", "(user-type-name ((global System ()) (Int32 ())))");
             AssertTypeName("Foo<Bar, int, Baz>",
                 "(user-type-name ((Foo ((user-type-name ((Bar ()))) (predefined-type-name int) (user-type-name ((Baz ())))))))");
+
+            var input = "Foo<,,>";
+            var exp = "(unbound-type-name ((Foo<,,>)))";
+            var parser = new Parser(input);
+            TypeNameExp ty = parser.ParseUnboundTypeName();
+            Assert.IsNotNull(ty);
+            Assert.AreEqual(exp, ty.ToString());
+
+            parser = new Parser(input);
+            ty = parser.ParseBoundOrUnboundTypeName();
+            Assert.IsNotNull(ty);
+            Assert.AreEqual(exp, ty.ToString());
+
+            AssertExp("typeof(void)", "(typeof (void-type-name))");
+            AssertExp("typeof(Foo<,,>)", "(typeof (unbound-type-name ((Foo<,,>))))");
+            AssertExp("typeof(int)", "(typeof (predefined-type-name int))");
+            AssertExp("typeof(Foobar)", "(typeof (user-type-name ((Foobar ()))))");
         }
 
         [TestMethod]
@@ -423,10 +440,6 @@ namespace MonticelloTests
         {
             string input = "Foo.Bar";
             string expected = "(member-access (id Foo) (id Bar))";
-            var parser = new Parser(input);
-            var e = parser.ParseMemberAccessExp();
-            //Assert.IsNotNull(e);
-            //Assert.AreEqual(expected, e.ToString());
             AssertExp(input, expected);
         }
 

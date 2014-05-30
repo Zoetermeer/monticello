@@ -555,6 +555,22 @@ namespace Monticello.Parsing {
     }
 
 
+    public class TypeofExp : Exp {
+        public TypeofExp(Token start)
+            : base(start)
+        {
+            
+        }
+
+        public TypeNameExp Type { get; set; }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("typeof", this.Type);
+        }
+    }
+
+
     public class CheckedExp : Exp {
         public CheckedExp(Token start)
             : base(start)
@@ -754,6 +770,28 @@ namespace Monticello.Parsing {
 
 
     /// <summary>
+    /// Occurs in contexts like 'typeof(void)'.
+    /// </summary>
+    public class VoidTypeExp : TypeNameExp {
+        public VoidTypeExp(Token start)
+            : base(start)
+        {
+            
+        }
+
+        public override bool IsPredefinedType
+        {
+            get { return true; }
+        }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("void-type-name");
+        }
+    }
+
+
+    /// <summary>
     /// Either a simple-type or one of object, dynamic, string
     /// </summary>
     public class PredefinedTypeNameExp : TypeNameExp {
@@ -815,6 +853,58 @@ namespace Monticello.Parsing {
         public override string ToString()
         {
             return StringFormatting.SExp("user-type-name", "(", ")", this.Parts);
+        }
+    }
+
+
+    public class UnboundTypeNameExp : TypeNameExp {
+        #region Nested
+        public class Part {
+            public IdExp AliasId { get; set; }
+            public IdExp Id { get; set; }
+            public bool IsGeneric { get; set; }
+            public int GenericDimensions { get; set; }
+
+            public override string ToString()
+            {
+                string name = null == AliasId
+                    ? Id.Spelling.Value
+                    : string.Format("{0} {1}", AliasId.Spelling.Value, Id.Spelling.Value);
+                if (IsGeneric) {
+                    var sb = new StringBuilder();
+                    sb.Append(name);
+                    sb.Append("<");
+                    for (int i = 0; i < GenericDimensions - 1; ++i) {
+                        sb.Append(",");
+                    }
+
+                    sb.Append(">");
+                    name = sb.ToString();
+                }
+
+                return StringFormatting.SExp(name);
+            }
+        }
+        #endregion
+
+        private readonly List<Part> parts = new List<Part>();
+
+        public UnboundTypeNameExp(Token start)
+            : base(start)
+        {
+            
+        }
+
+        public List<Part> Parts { get { return parts; } }
+
+        public override bool IsPredefinedType
+        {
+            get { return false; }
+        }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("unbound-type-name", "(", ")", this.Parts);
         }
     }
 

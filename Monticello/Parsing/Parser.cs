@@ -765,6 +765,22 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParseTypeofExp()
         {
+            Token start;
+            if (Accept(Sym.KwTypeof, out start) && Accept(Sym.OpenParen)) {
+                Token next;
+                if (Accept(Sym.KwVoid, out next) && Expect(Sym.CloseParen)) {
+                    return new TypeofExp(start) { Type = new VoidTypeExp(next) };
+                }
+
+                //Otherwise, can be any type name (bound/unbound)
+                var ty = ParseBoundOrUnboundTypeName();
+                if (null != ty && Expect(Sym.CloseParen)) {
+                    return new TypeofExp(start) { Type = ty };
+                }
+
+                result.Error("Expected type name", lexer);
+            }
+
             return null;
         }
 
@@ -1432,6 +1448,36 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// bound-or-unbound-type-name :=
+        ///     type-name
+        ///     unbound-type-name
+        /// 
+        /// There isn't a rule in the official grammar that corresponds to this.
+        /// But the rules for bound and unbound type names are ambiguous.  The 
+        /// sequence:
+        /// 
+        /// System.Int32 
+        /// 
+        /// clearly isn't an unbound type 
+        /// but could satisfy either rule.  I think the intent here (and the policy 
+        /// adopted by this parser) is for unbound-type-name to actually only be 
+        /// a reference to a generic type constructor (e.g. List&lt;> or Dictionary&lt;,>).
+        /// </summary>
+        /// <returns></returns>
+        public TypeNameExp ParseBoundOrUnboundTypeName()
+        {
+            using (var la = new LookaheadFrame(lexer)) {
+                var ty = ParseTypeName();
+                if (null != ty) {
+                    la.Commit();
+                    return ty;
+                }
+            }
+
+            return ParseUnboundTypeName();
+        }
+
+        /// <summary>
         /// predefined-type :=
         ///     bool | byte | char | decimal | double | float | int | long
         ///     object | sbyte | short | string | uint | ulong | ushort
@@ -1514,7 +1560,7 @@ namespace Monticello.Parsing
                     var ty = ApplyRule(ParseTypeName);
                     if (null == ty) {
                         result.Error("Expected type argument", lexer);
-                        continue;
+                        return null;
                     }
 
                     targs.Add(ty);
@@ -1544,12 +1590,17 @@ namespace Monticello.Parsing
             var typeName = new UserTypeNameExp(lexer.PeekToken());
             UserTypeNameExp.Part p;
             var prev = ApplyRule(ParseUserTypeNameExp);
+            List<TypeNameExp> targs;
             IdExp id;
             if (null != prev) {
                 typeName.Parts.AddRange(prev.Parts);
                 if (Accept(Sym.Dot) && Accept(ParseId, out id)) {
                     p = new UserTypeNameExp.Part(id.StartToken) { Id = id };
-                    p.TypeArgs.AddRange(ParseTypeArgList());
+                    targs = ParseTypeArgList();
+                    if (null == targs)
+                        return null;
+
+                    p.TypeArgs.AddRange(targs);
                     typeName.Parts.Add(p);
 
                     return typeName;
@@ -1565,7 +1616,11 @@ namespace Monticello.Parsing
                     p.AliasId = id;
                     if (Expect(ParseId, "Expected identifier", out id)) {
                         p.Id = id;
-                        p.TypeArgs.AddRange(ParseTypeArgList());
+                        targs = ParseTypeArgList();
+                        if (null == targs)
+                            return null;
+
+                        p.TypeArgs.AddRange(targs);
                         typeName.Parts.Add(p);
                         return typeName;
                     }
@@ -1576,8 +1631,98 @@ namespace Monticello.Parsing
                 //Otherwise, just id + type-args
                 p.Id = id;
                 typeName.Parts.Add(p);
-                p.TypeArgs.AddRange(ParseTypeArgList());
+                targs = ParseTypeArgList();
+                if (null == targs)
+                    return null;
+                p.TypeArgs.AddRange(targs);
                 return typeName;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// generic-dimension-specifier := 
+        ///     '&lt;' (',')* '>'
+        /// </summary>
+        /// <returns></returns>
+        public int? ParseGenericDimensionSpecifier()
+        {
+            if (Accept(Sym.LessThan)) {
+                int dims = 1;
+                while (Accept(Sym.Comma)) {
+                    dims++;
+                }
+
+                if (Expect(Sym.GreaterThan))
+                    return dims;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// unbound-type-name :=
+        ///     unbound-type-name '.' id (generic-dimension-specifier)?
+        ///     id '::' id (generic-dimension-specifier)?
+        ///     id (generic-dimension-specifier)?
+        /// </summary>
+        /// <returns></returns>
+        public UnboundTypeNameExp ParseUnboundTypeName()
+        {
+            var uty = new UnboundTypeNameExp(lexer.PeekToken());
+            var ty = ApplyRule(ParseUnboundTypeName);
+            IdExp id;
+            UnboundTypeNameExp.Part p;
+            if (null != ty) {
+                uty.Parts.AddRange(ty.Parts);
+
+                //First alternative
+                if (Accept(Sym.Dot)) {
+                    if (Expect(ParseId, "Expected identifier", out id)) {
+                        p = new UnboundTypeNameExp.Part() { Id = id };
+                        int? dims = ParseGenericDimensionSpecifier();
+                        if (dims.HasValue) {
+                            p.IsGeneric = true;
+                            p.GenericDimensions = dims.GetValueOrDefault();
+                        }
+
+                        uty.Parts.Add(p);
+                        return uty;
+                    }
+                }
+
+                return ty;
+            }
+
+            //Second alternative
+            if (Accept(ParseId, out id)) {
+                int? dms;
+                if (Accept(Sym.ScopeResolution)) {
+                    p = new UnboundTypeNameExp.Part() { AliasId = id };
+                    if (Accept(ParseId, out id)) {
+                        p.Id = id;
+                        dms = ParseGenericDimensionSpecifier();
+                        if (dms.HasValue) {
+                            p.IsGeneric = true;
+                            p.GenericDimensions = dms.GetValueOrDefault();
+                        }
+
+                        uty.Parts.Add(p);
+                        return uty;
+                    }    
+                }
+
+                //Third alternative
+                p = new UnboundTypeNameExp.Part() { Id = id };
+                dms = ParseGenericDimensionSpecifier();
+                if (dms.HasValue) {
+                    p.IsGeneric = true;
+                    p.GenericDimensions = dms.GetValueOrDefault();
+                }
+
+                uty.Parts.Add(p);
+                return uty;
             }
 
             return null;
