@@ -721,7 +721,7 @@ namespace Monticello.Parsing {
 
         public override string ToString()
         {
-            return StringFormatting.SExp("predefined-type", Type.ToString().ToLower());
+            return StringFormatting.SExp("predefined-type-name", Type.ToString().ToLower());
         }
     }
 
