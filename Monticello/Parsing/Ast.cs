@@ -667,6 +667,23 @@ namespace Monticello.Parsing {
     }
 
 
+    public class MemberInitializerExp : Exp {
+        public MemberInitializerExp(Token start)
+            : base(start)
+        {
+            
+        }
+
+        public IdExp Name { get; set; }
+        public Exp Exp { get; set; }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("member-initializer", Name, this.Exp);
+        }
+    }
+
+
     /// <summary>
     /// This doubles for both new-object-creation and new-delegate-creation.
     /// (There isn't any way to distinguish between them, other than 
@@ -681,7 +698,14 @@ namespace Monticello.Parsing {
         }
 
         public TypeNameExp Type { get; set; }
+        public List<ArgumentExp> CtorArgs { get; set; }
+        public List<MemberInitializerExp> InitArgs { get; set; }
 
+        public override string ToString()
+        {
+            return StringFormatting.SExp("new-instance", this.Type, StringFormatting.SExp("", CtorArgs),
+                StringFormatting.SExp("", InitArgs));
+        }
     }
 
 

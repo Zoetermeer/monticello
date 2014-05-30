@@ -748,6 +748,71 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// member-initializer :=
+        ///     id '=' exp
+        /// </summary>
+        /// <returns></returns>
+        public MemberInitializerExp ParseMemberInitializer()
+        {
+            IdExp name;
+            if (Accept(ParseId, out name) && Accept(Sym.AssignEqual)) {
+                var e = ApplyRule(ParseExp);
+                if (null != e)
+                    return new MemberInitializerExp(name.StartToken) { Name = name, Exp = e };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// object-initializer :=
+        ///     '{' (member-initializer-list)? '}'
+        /// 
+        /// member-initializer-list :=
+        ///     member-initializer (',' member-initializer)*
+        /// </summary>
+        /// <returns></returns>
+        public List<MemberInitializerExp> ParseObjectInitializer()
+        {
+            var args = new List<MemberInitializerExp>();
+            if (Accept(Sym.OpenBrace)) {
+                do {
+                    var arg = ApplyRule(ParseMemberInitializer);
+                    if (null == arg)
+                        break;
+
+                    args.Add(arg);
+                } while (Accept(Sym.Comma));
+            }
+
+            return args;
+        }
+
+        /// <summary>
+        /// new-instance-creation :=
+        ///     'new' type '(' arg-list ')' (object-or-collection-initializer)?
+        /// </summary>
+        /// <returns></returns>
+        public NewInstanceCreationExp ParseNewInstanceCreationExp()
+        {
+            Token start;
+            if (Accept(Sym.KwNew, out start)) {
+                var ty = ApplyRule(ParseTypeName);
+                if (null != ty) {
+                    if (Accept(Sym.OpenParen)) {
+                        var args = ParseArgumentList();
+                        if (Expect(Sym.CloseParen)) {
+                            var initArgs = ParseObjectInitializer();
+                            return new NewInstanceCreationExp(start) { Type = ty, CtorArgs = args, InitArgs = initArgs };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// object-creation :=
         ///     'new' type '(' (arg-list)? ')' (obj-or-collection-initializer)?
         /// </summary>
@@ -905,8 +970,7 @@ namespace Monticello.Parsing
         ///     literal
         ///     this-access
         ///     base-access
-        ///     object-creation-exp
-        ///     delegate-creation-exp
+        ///     new-instance-creation-exp
         ///     typeof-exp
         ///     sizeof-exp
         ///     checked-exp
@@ -945,9 +1009,7 @@ namespace Monticello.Parsing
                 return exp;
             if (null != (exp = tryRule(ParseBaseAccessExp)))
                 return exp;
-            if (null != (exp = tryRule(ParseObjectCreationExp)))
-                return exp;
-            if (null != (exp = tryRule(ParseDelegateCreationExp)))
+            if (null != (exp = tryRule(ParseNewInstanceCreationExp)))
                 return exp;
             if (null != (exp = tryRule(ParseTypeofExp)))
                 return exp;

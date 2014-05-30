@@ -47,7 +47,7 @@ namespace Monticello.Common {
             var sb = new StringBuilder();
             sb.Append("(");
             sb.Append(name);
-            if (args.Length > 0 || !string.IsNullOrEmpty(argListStart))
+            if ((args.Length > 0 || !string.IsNullOrEmpty(argListStart)) && !string.IsNullOrEmpty(name))
                 sb.Append(" ");
 
             sb.Append(argListStart);

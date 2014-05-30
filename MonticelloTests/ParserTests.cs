@@ -493,5 +493,14 @@ namespace MonticelloTests
             AssertExp("default(int)", "(default-value (predefined-type-name int))");
             AssertExp("default(System.Object)", "(default-value (user-type-name ((System ()) (Object ()))))");
         }
+
+        [TestMethod]
+        public void TestNewExps()
+        {
+            AssertExp("new object()", "(new-instance (predefined-type-name object) () ())");
+            AssertExp("new object(42)", "(new-instance (predefined-type-name object) ((arg (int 42))) ())");
+            AssertExp("new Foo(32) { Name = \"foobar\" }",
+                "(new-instance (user-type-name ((Foo ()))) ((arg (int 32))) ((member-initializer (id Name) (string \"foobar\"))))");
+        }
     }
 }
