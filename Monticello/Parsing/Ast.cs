@@ -63,6 +63,7 @@ namespace Monticello.Parsing {
         Char, 
         Decimal, 
         Double, 
+        Dynamic, 
         Float, 
         Int, 
         Long, 
@@ -690,6 +691,74 @@ namespace Monticello.Parsing {
         }
     }
 
+
+    /// <summary>
+    /// type-name
+    /// </summary>
+    public abstract class TypeNameExp : Exp {
+        protected TypeNameExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public abstract bool IsPredefinedType { get; }
+    }
+
+
+    /// <summary>
+    /// Either a simple-type or one of object, dynamic, string
+    /// </summary>
+    public class PredefinedTypeNameExp : TypeNameExp {
+        public PredefinedTypeNameExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public override bool IsPredefinedType { get { return true; } }
+        public PredefinedType Type { get; set; }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("predefined-type", Type.ToString().ToLower());
+        }
+    }
+
+
+    /// <summary>
+    /// Any type-name that is not a predefined type
+    /// </summary>
+    public class UserTypeNameExp : TypeNameExp {
+        #region Nested
+        public class Part : Exp {
+            private readonly List<TypeNameExp> typeArgs = new List<TypeNameExp>();
+
+            public Part(Token start)
+                : base(start)
+            {
+                
+            }
+
+            public IdExp AliasId { get; set; }
+            public IdExp Id { get; set; }
+            public List<TypeNameExp> TypeArgs { get { return typeArgs; } }
+        }
+        #endregion
+
+        private readonly List<Part> parts = new List<Part>();
+        
+        public UserTypeNameExp(Token start)
+            : base(start)
+        {
+
+        }
+
+        public override bool IsPredefinedType { get { return false; } }
+        public List<Part> Parts { get { return parts; } }
+    }
+
+
     public class IdExp : Exp {
         public IdExp(Token spelling)
             : base(spelling)
@@ -743,17 +812,6 @@ namespace Monticello.Parsing {
             sb.Append(")");
             return sb.ToString();
         }
-    }
-
-
-    public class PredefinedTypeExp : Exp {
-        public PredefinedTypeExp(Token start) 
-            : base(start)
-        {
-
-        }
-
-        public PredefinedType Type { get; set; }
     }
 
 

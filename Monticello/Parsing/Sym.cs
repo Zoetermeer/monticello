@@ -130,6 +130,7 @@ namespace Monticello.Parsing {
         BitwiseXorEqual,
         LeftShiftEqual,
         RightShiftEqual,
+        ScopeResolution, 
         Eof,
         Unknown
     }

@@ -19,6 +19,12 @@ namespace MonticelloTests
             Assert.AreEqual(expected, parser.ParsePrimaryNoArrayCreationExp().ToString());
         }
 
+        private void AssertTypeName(string input, string expected)
+        {
+            var parser = new Parser(input);
+            Assert.AreEqual(expected, parser.ParseTypeName().ToString());
+        }
+
         [TestMethod]
         public void TestQualifiedId()
         {
@@ -241,7 +247,7 @@ namespace MonticelloTests
             Assert.IsTrue(fa.Args[1] is PositionalAttrArgument);
             Assert.IsTrue(fa.Args[2] is NamedAttrArgument);
 
-            NamedAttrArgument bArg = fb.Args[0] as NamedAttrArgument;
+            var bArg = fb.Args[0] as NamedAttrArgument;
             Assert.IsNotNull(bArg);
             Assert.AreEqual("Prop", bArg.Name.Spelling.Value);
             Assert.IsTrue(bArg.Exp is CharLiteralExp);
@@ -261,7 +267,7 @@ namespace MonticelloTests
             Assert.IsTrue(fa.Args[0] is PositionalAttrArgument);
             Assert.IsTrue(fa.Args[1] is PositionalAttrArgument);
 
-            NamedAttrArgument na = fa.Args[2] as NamedAttrArgument;
+            var na = fa.Args[2] as NamedAttrArgument;
             Assert.IsNotNull(na);
             Assert.AreEqual("Name", na.Name.Spelling.Value);
         }
@@ -280,6 +286,14 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestTypeNames()
+        {
+            AssertTypeName("object", "(predefined-type object)");
+            AssertTypeName("Foo", "(user-type-name ((Foo ()))");
+            AssertTypeName("System.Foo", "(user-type-name ((System ()) (Foo ())))");
+        }
+
+        [TestMethod]
         public void TestLiterals()
         {
             AssertExp("1", "(int 1)");
@@ -294,11 +308,11 @@ namespace MonticelloTests
             Assert.AreEqual("(add (int 1) (int 2))", e.ToString());
 
             Assert.IsNotNull(e);
-            AdditiveExp ae = e as AdditiveExp;
+            var ae = e as AdditiveExp;
             Assert.IsNotNull(ae);
 
-            IntLiteralExp lhs = ae.Lhs as IntLiteralExp;
-            IntLiteralExp rhs = ae.Rhs as IntLiteralExp;
+            var lhs = ae.Lhs as IntLiteralExp;
+            var rhs = ae.Rhs as IntLiteralExp;
             Assert.IsNotNull(lhs);
             Assert.IsNotNull(rhs);
 

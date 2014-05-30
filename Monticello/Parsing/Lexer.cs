@@ -53,6 +53,7 @@ namespace Monticello.Parsing
             AddRule("++", Sym.PlusPlus);
             AddRule("--", Sym.MinusMinus);
             AddRule(";", Sym.Semicolon);
+            AddRule("::", Sym.ScopeResolution);
             AddRule(":", Sym.Colon);
             AddRule("=", Sym.AssignEqual);
             AddRule("==", Sym.EqualEqual);

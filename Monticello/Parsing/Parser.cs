@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Monticello.Common;
 
 namespace Monticello.Parsing
@@ -62,8 +60,6 @@ namespace Monticello.Parsing
             }
         }
 
-
-        private string input;
         private Lexer lexer;
         private ParseResult result;
         private MemoTable memoTable = new MemoTable();
@@ -72,7 +68,6 @@ namespace Monticello.Parsing
 
         public Parser(string input)
         {
-            this.input = input;
             this.lexer = new Lexer(input);
             this.result = new ParseResult();
         }
@@ -112,7 +107,7 @@ namespace Monticello.Parsing
             return match;
         }
 
-        private bool Accept<T>(Func<T> parser, out T ast) 
+        private static bool Accept<T>(Func<T> parser, out T ast) 
             where T : AstNode
         {
             ast = parser();
@@ -143,7 +138,7 @@ namespace Monticello.Parsing
             return false;
         }
 
-        private Tuple<string, int> MemoKey(Rule<AstNode> rule, int pos)
+        private static Tuple<string, int> MemoKey(Rule<AstNode> rule, int pos)
         {
             return Tuple.Create(rule.Method.Name, pos);
         }
@@ -174,6 +169,12 @@ namespace Monticello.Parsing
         private T LRAnswer<T>(Rule<T> rule, int p, MemoEntry m)
             where T : AstNode
         {
+            #region Contracts
+            Contract.Requires(m != null);
+            Contract.Requires(m.Ast != null);
+            Contract.Requires(m.Ast is LR);
+            #endregion
+
             var lr = m.Ast as LR;
             var h = lr.Head;
             if (h.Rule != rule) 
@@ -303,8 +304,6 @@ namespace Monticello.Parsing
         /// <summary>
         /// using-directives := (using-directive)*
         /// </summary>
-        /// <param name="buf"></param>
-        /// <param name="result"></param>
         /// <returns></returns>
         public List<UsingDirective> ParseUsingDirectives()
         {
@@ -740,7 +739,7 @@ namespace Monticello.Parsing
 
         /// <summary>
         /// object-creation :=
-        ///     'new' type '(' (arg-list)? ')'
+        ///     'new' type '(' (arg-list)? ')' (obj-or-collection-initializer)?
         /// </summary>
         /// <returns></returns>
         public Exp ParseObjectCreationExp()
@@ -889,9 +888,13 @@ namespace Monticello.Parsing
                 return exp;
             if (null != (exp = tryRule(ParseUncheckedExp)))
                 return exp;
+            if (null != (exp = tryRule(ParseDefaultValueExp)))
+                return exp;
+            if (null != (exp = tryRule(ParseAnonMethodExp)))
+                return exp;
             if (null != (exp = tryRule(ParseLiteral)))
                 return exp;
-            else if (null != (exp = tryRule(ParseId)))
+            if (null != (exp = tryRule(ParseId)))
                 return exp;
 
             return null;
@@ -1019,9 +1022,11 @@ namespace Monticello.Parsing
 
             if (Accept(Sym.Mult))
                 return new MultiplicativeExp(lhs.StartToken, Op.Multiply) { Lhs = lhs, Rhs = ApplyRule(ParseUnaryExp) };
-            else if (Accept(Sym.Div))
+            
+            if (Accept(Sym.Div))
                 return new MultiplicativeExp(lhs.StartToken, Op.Multiply) { Lhs = lhs, Rhs = ApplyRule(ParseUnaryExp) };
-            else if (Accept(Sym.Mod))
+            
+            if (Accept(Sym.Mod))
                 return new MultiplicativeExp(lhs.StartToken, Op.Mod) { Lhs = lhs, Rhs = ApplyRule(ParseUnaryExp) };
 
             return lhs;
@@ -1064,7 +1069,8 @@ namespace Monticello.Parsing
 
             if (Accept(Sym.LeftShift))
                 return new ShiftExp(lhs.StartToken, Op.LeftShift) { Lhs = lhs, Rhs = ApplyRule(ParseAdditiveExp) };
-            else if (Accept(Sym.RightShift))
+            
+            if (Accept(Sym.RightShift))
                 return new ShiftExp(lhs.StartToken, Op.RightShift) { Lhs = lhs, Rhs = ApplyRule(ParseAdditiveExp) };
 
             return lhs;
@@ -1121,7 +1127,9 @@ namespace Monticello.Parsing
 
             if (Accept(Sym.EqualEqual)) {
                 return new EqualityExp(lhs.StartToken, Op.EqualEqual) { Lhs = lhs, Rhs = ApplyRule(ParseRelationalExp) };
-            } else if (Accept(Sym.NotEqual)) {
+            }
+
+            if (Accept(Sym.NotEqual)) {
                 return new EqualityExp(lhs.StartToken, Op.NotEqual) { Lhs = lhs, Rhs = ApplyRule(ParseRelationalExp) };
             }
 
@@ -1304,7 +1312,7 @@ namespace Monticello.Parsing
 
                 lexer.Read();
                 var rhs = ApplyRule(ParseExp);
-                if (null != lhs) {
+                if (null != rhs) {
                     return new AssignmentExp(lhs.StartToken, theOp) { Lhs = lhs, Rhs = rhs };
                 }
             }
@@ -1356,16 +1364,28 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// type-name :=
+        ///     predefined-type
+        ///     user-type
+        /// </summary>
+        /// <returns></returns>
+        public TypeNameExp ParseTypeName()
+        {
+            TypeNameExp tn = ParsePredefinedType();
+            return tn ?? ParseUserTypeNameExp();
+        }
+
+        /// <summary>
         /// predefined-type :=
         ///     bool | byte | char | decimal | double | float | int | long
         ///     object | sbyte | short | string | uint | ulong | ushort
         /// </summary>
         /// <returns></returns>
-        public PredefinedTypeExp ParsePredefinedType()
+        public PredefinedTypeNameExp ParsePredefinedType()
         {
             var t = lexer.PeekToken();
-            PredefinedType type = PredefinedType.Unknown;
-            bool valid = true;
+            var type = PredefinedType.Unknown;
+            var valid = true;
             switch (t.Sym) {
                 case Sym.KwBool:
                     type = PredefinedType.Bool;
@@ -1419,7 +1439,75 @@ namespace Monticello.Parsing
 
             if (valid) {
                 lexer.Read();
-                return new PredefinedTypeExp(t) { Type = type };
+                return new PredefinedTypeNameExp(t) { Type = type };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// type-arg-list :=
+        ///     '&lt;' type (',' type)* '>'
+        /// </summary>
+        /// <returns></returns>
+        public List<TypeNameExp> ParseTypeArgList()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// (spec rule):
+        /// user-type-name :=
+        ///     user-type-name '.' id (type-arg-list)? 
+        ///     id '::' id (type-arg-list)?                   --> qualified-alias-member
+        ///     id (type-arg-list)?
+        /// 
+        /// (factored):
+        /// user-type-name :=
+        ///     part (part)*
+        ///     
+        /// 
+        /// part := id (type-arg-list)?
+        /// </summary>
+        /// <returns></returns>
+        public UserTypeNameExp ParseUserTypeNameExp()
+        {
+            var typeName = new UserTypeNameExp(lexer.PeekToken());
+            UserTypeNameExp.Part p;
+            var prev = ApplyRule(ParseUserTypeNameExp);
+            IdExp id;
+            if (null != prev) {
+                typeName.Parts.AddRange(prev.Parts);
+                if (Accept(Sym.Dot) && Accept(ParseId, out id)) {
+                    p = new UserTypeNameExp.Part(id.StartToken);
+                    p.TypeArgs.AddRange(ParseTypeArgList());
+                    typeName.Parts.Add(p);
+
+                    return typeName;
+                }
+
+                return prev;
+            }
+
+            if (Accept(ParseId, out id)) {
+                p = new UserTypeNameExp.Part(id.StartToken);
+                if (Accept(Sym.ScopeResolution)) {
+                    //qualified-alias-member
+                    p.AliasId = id;
+                    if (Expect(ParseId, "Expected identifier", out id)) {
+                        p.Id = id;
+                        p.TypeArgs.AddRange(ParseTypeArgList());
+                        typeName.Parts.Add(p);
+                        return typeName;
+                    }
+
+                    return null;
+                }
+
+                //Otherwise, just id + type-args
+                p.Id = id;
+                p.TypeArgs.AddRange(ParseTypeArgList());
+                return typeName;
             }
 
             return null;
@@ -1432,11 +1520,7 @@ namespace Monticello.Parsing
         public IdExp ParseId()
         {
             Token idt;
-            if (Accept(Sym.Id, out idt)) {
-                return new IdExp(idt);
-            }
-
-            return null;
+            return Accept(Sym.Id, out idt) ? new IdExp(idt) : null;
         }
 
         /// <summary>

@@ -399,5 +399,12 @@ namespace MonticelloTests
                 Sym.CloseBrace,
                 Sym.CloseBrace);
         }
+
+        [TestMethod]
+        public void TestColonOperators()
+        {
+            AssertSymsMatch(":", Sym.Colon);
+            AssertSymsMatch("::", Sym.ScopeResolution);
+        }
     }
 }
