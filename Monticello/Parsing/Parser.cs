@@ -1452,7 +1452,20 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public List<TypeNameExp> ParseTypeArgList()
         {
-            return null;
+            var targs = new List<TypeNameExp>();
+            if (Accept(Sym.LessThan)) {
+                do {
+                    var ty = ApplyRule(ParseTypeName);
+                    if (null == ty) {
+                        result.Error("Expected type argument", lexer);
+                        continue;
+                    }
+
+                    targs.Add(ty);
+                } while (Accept(Sym.Comma));
+            }
+
+            return targs;
         }
 
         /// <summary>
@@ -1479,7 +1492,7 @@ namespace Monticello.Parsing
             if (null != prev) {
                 typeName.Parts.AddRange(prev.Parts);
                 if (Accept(Sym.Dot) && Accept(ParseId, out id)) {
-                    p = new UserTypeNameExp.Part(id.StartToken);
+                    p = new UserTypeNameExp.Part(id.StartToken) { Id = id };
                     p.TypeArgs.AddRange(ParseTypeArgList());
                     typeName.Parts.Add(p);
 
@@ -1506,6 +1519,7 @@ namespace Monticello.Parsing
 
                 //Otherwise, just id + type-args
                 p.Id = id;
+                typeName.Parts.Add(p);
                 p.TypeArgs.AddRange(ParseTypeArgList());
                 return typeName;
             }

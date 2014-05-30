@@ -289,8 +289,10 @@ namespace MonticelloTests
         public void TestTypeNames()
         {
             AssertTypeName("object", "(predefined-type object)");
-            AssertTypeName("Foo", "(user-type-name ((Foo ()))");
+            AssertTypeName("Foo", "(user-type-name ((Foo ())))");
             AssertTypeName("System.Foo", "(user-type-name ((System ()) (Foo ())))");
+            AssertTypeName("System.Collections.Generic.List<int>",
+                "(user-type-name ((System ()) (Collections ()) (Generic ()) (List ((predefined-type int)))))");
         }
 
         [TestMethod]

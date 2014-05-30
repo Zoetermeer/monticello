@@ -743,6 +743,14 @@ namespace Monticello.Parsing {
             public IdExp AliasId { get; set; }
             public IdExp Id { get; set; }
             public List<TypeNameExp> TypeArgs { get { return typeArgs; } }
+
+            public override string ToString()
+            {
+                string name = null == AliasId
+                    ? Id.Spelling.Value
+                    : string.Format("{0} {1}", AliasId.Spelling.Value, Id.Spelling.Value);
+                return StringFormatting.SExp(name, "(", ")", TypeArgs);
+            }
         }
         #endregion
 
@@ -756,6 +764,11 @@ namespace Monticello.Parsing {
 
         public override bool IsPredefinedType { get { return false; } }
         public List<Part> Parts { get { return parts; } }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("user-type-name", "(", ")", this.Parts);
+        }
     }
 
 
