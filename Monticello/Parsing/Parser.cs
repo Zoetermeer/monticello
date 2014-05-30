@@ -806,6 +806,21 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
+        /// parenthesized-exp := '(' exp ')'
+        /// </summary>
+        /// <returns></returns>
+        public Exp ParseParenExp()
+        {
+            if (Accept(Sym.OpenParen)) {
+                var e = ApplyRule(ParseExp);
+                if (null != e && Expect(Sym.CloseParen))
+                    return e;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// anon-function-sig :=
         ///     explicit-anon-function-sig
         ///     implicit-anon-function-sig
@@ -827,6 +842,7 @@ namespace Monticello.Parsing
 
         /// <summary>
         /// primary-no-array-creation-exp :=
+        ///     parenthesized-exp
         ///     invocation-exp
         ///     member-access
         ///     element-access
@@ -834,7 +850,6 @@ namespace Monticello.Parsing
         ///     post-decr-exp
         ///     simple-name
         ///     literal
-        ///     parenthesized-exp
         ///     this-access
         ///     base-access
         ///     object-creation-exp
@@ -862,6 +877,8 @@ namespace Monticello.Parsing
                 };
 
             Exp exp;
+            if (null != (exp = tryRule(ParseParenExp)))
+                return exp;
             if (null != (exp = tryRule(ParseInvocationExp)))
                 return exp;
             if (null != (exp = tryRule(ParseMemberAccessExp)))
@@ -945,14 +962,14 @@ namespace Monticello.Parsing
         }
 
         /// <summary>
-        /// cast-exp := '(' qualified-id ')' unary-exp
+        /// cast-exp := '(' type-name ')' unary-exp
         /// </summary>
         /// <returns></returns>
         public Exp ParseCastExp()
         {
             Token tok;
             if (Accept(Sym.OpenParen, out tok)) {
-                var typeId = ApplyRule(ParseQualifiedId);
+                var typeId = ApplyRule(ParseTypeName);
                 if (null != typeId) {
                     Expect(Sym.CloseParen);
                     var exp = ApplyRule(ParseUnaryExp);
@@ -1000,7 +1017,19 @@ namespace Monticello.Parsing
                 case Sym.MinusMinus:
                     return ApplyRule(ParsePreDecrExp);
                 case Sym.OpenParen:
-                    return ApplyRule(ParseCastExp);
+                {
+                    //Need to backtrack here if not a cast, because a parenthesized-exp 
+                    //is a primary exp
+                    using (var la = new LookaheadFrame(lexer)) {
+                        var e = ApplyRule(ParseCastExp);
+                        if (null != e) {
+                            la.Commit();
+                            return e;
+                        }
+                    }
+
+                    return ApplyRule(ParsePrimaryExp);
+                }
                 default:
                     return ApplyRule(ParsePrimaryExp);
             }

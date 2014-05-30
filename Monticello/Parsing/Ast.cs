@@ -563,7 +563,7 @@ namespace Monticello.Parsing {
 
         }
 
-        public QualifiedIdExp TargetType { get; set; }
+        public TypeNameExp TargetType { get; set; }
         public Exp Exp { get; set; }
     }
 

@@ -453,5 +453,12 @@ namespace MonticelloTests
             AssertExp("base.whatever", "(base-member-access (id whatever))");
             AssertExp("base[1, 2]", "(base-indexer-access ((int 1) (int 2)))");
         }
+
+        [TestMethod]
+        public void TestParens()
+        {
+            AssertExp("4 + 3 * 2", "(add (int 4) (mult (int 3) (int 2)))");
+            AssertExp("(4 + 3) * 2", "(mult (add (int 4) (int 3)) (int 2))");
+        }
     }
 }
