@@ -460,5 +460,12 @@ namespace MonticelloTests
             AssertExp("4 + 3 * 2", "(add (int 4) (mult (int 3) (int 2)))");
             AssertExp("(4 + 3) * 2", "(mult (add (int 4) (int 3)) (int 2))");
         }
+
+        [TestMethod]
+        public void TestCheckedUnchecked()
+        {
+            AssertExp("checked(4 + 3)", "(checked (add (int 4) (int 3)))");
+            AssertExp("unchecked(2)", "(unchecked (int 2))");
+        }
     }
 }

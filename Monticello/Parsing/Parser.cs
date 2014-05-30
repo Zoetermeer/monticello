@@ -784,6 +784,15 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParseCheckedExp()
         {
+            Token start;
+            if (Accept(Sym.KwChecked, out start) && Accept(Sym.OpenParen)) {
+                var e = ApplyRule(ParseExp);
+                if (null != e && Expect(Sym.CloseParen))
+                    return new CheckedExp(start) { Exp = e };
+
+                result.Error("Expected expression", start);
+            }
+
             return null;
         }
 
@@ -793,6 +802,15 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParseUncheckedExp()
         {
+            Token start;
+            if (Accept(Sym.KwUnchecked, out start) && Accept(Sym.OpenParen)) {
+                var e = ApplyRule(ParseExp);
+                if (null != e && Expect(Sym.CloseParen))
+                    return new UncheckedExp(start) { Exp = e };
+
+                result.Error("Expected expression", start);
+            }
+
             return null;
         }
 
