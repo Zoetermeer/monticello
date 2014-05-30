@@ -467,5 +467,12 @@ namespace MonticelloTests
             AssertExp("checked(4 + 3)", "(checked (add (int 4) (int 3)))");
             AssertExp("unchecked(2)", "(unchecked (int 2))");
         }
+
+        [TestMethod]
+        public void TestDefaultValueExp()
+        {
+            AssertExp("default(int)", "(default-value (predefined-type-name int))");
+            AssertExp("default(System.Object)", "(default-value (user-type-name ((System ()) (Object ()))))");
+        }
     }
 }

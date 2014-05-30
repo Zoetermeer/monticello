@@ -790,7 +790,7 @@ namespace Monticello.Parsing
                 if (null != e && Expect(Sym.CloseParen))
                     return new CheckedExp(start) { Exp = e };
 
-                result.Error("Expected expression", start);
+                result.Error("Expected expression", start); 
             }
 
             return null;
@@ -820,6 +820,15 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParseDefaultValueExp()
         {
+            Token start;
+            if (Accept(Sym.KwDefault, out start) && Accept(Sym.OpenParen)) {
+                var ty = ParseTypeName();
+                if (null != ty && Expect(Sym.CloseParen))
+                    return new DefaultValueExp(start) { TypeName = ty };
+
+                result.Error("Expected type name", start);
+            }
+
             return null;
         }
 

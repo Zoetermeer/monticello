@@ -587,6 +587,22 @@ namespace Monticello.Parsing {
     }
 
 
+    public class DefaultValueExp : Exp {
+        public DefaultValueExp(Token start)
+            : base(start)
+        {
+            
+        }
+
+        public TypeNameExp TypeName { get; set; }
+
+        public override string ToString()
+        {
+            return StringFormatting.SExp("default-value", this.TypeName);
+        }
+    }
+
+
     public class CastExp : Exp {
         public CastExp(Token start)
             : base(start)
