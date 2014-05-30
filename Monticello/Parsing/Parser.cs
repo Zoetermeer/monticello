@@ -523,31 +523,41 @@ namespace Monticello.Parsing
 
         /// <summary>
         /// argument :=
-        ///     'ref' exp
-        ///     'out' exp
-        ///     exp
+        ///     (id ':')? 'ref' exp
+        ///     (id ':')? 'out' exp
+        ///     (id ':')? exp
         /// </summary>
         /// <returns></returns>
         public ArgumentExp ParseArgument()
         {
-            bool isRef = false, isOut = false;
-            Token t = lexer.PeekToken(), start = null;
+            bool isRef = false, isOut = false, isNamed = false;
+            Token start = null;
+            IdExp argName = null;
+            using (var la = new LookaheadFrame(lexer)) {
+                if (Accept(ParseId, out argName) && Accept(Sym.Colon)) {
+                    la.Commit();
+                    start = argName.StartToken;
+                    isNamed = true;
+                }
+            }
+
+            Token t = lexer.PeekToken();
             switch (t.Sym) {
                 case Sym.KwRef:
                     isRef = true;
-                    start = t;
+                    start = start ?? t;
                     lexer.Read();
                     break;
                 case Sym.KwOut:
                     isOut = true;
-                    start = t;
+                    start = start ?? t;
                     lexer.Read();
                     break;
             }
 
             var e = ApplyRule(ParseExp);
             if (null != e)
-                return new ArgumentExp(start ?? e.StartToken) { Exp = e, IsOut = isOut, IsRef = isRef };
+                return new ArgumentExp(start ?? e.StartToken) { Name = isNamed ? argName : null, Exp = e, IsOut = isOut, IsRef = isRef };
 
             return null;
         }
@@ -907,7 +917,6 @@ namespace Monticello.Parsing
         /// <returns></returns>
         public Exp ParsePrimaryNoArrayCreationExp()
         {
-            //TODO: All other cases besides literals
             Func<Rule<Exp>, Exp> tryRule = (rule) => 
                 {
                     using (var la = new LookaheadFrame(lexer)) {
@@ -1576,13 +1585,6 @@ namespace Monticello.Parsing
         ///     user-type-name '.' id (type-arg-list)? 
         ///     id '::' id (type-arg-list)?                   --> qualified-alias-member
         ///     id (type-arg-list)?
-        /// 
-        /// (factored):
-        /// user-type-name :=
-        ///     part (part)*
-        ///     
-        /// 
-        /// part := id (type-arg-list)?
         /// </summary>
         /// <returns></returns>
         public UserTypeNameExp ParseUserTypeNameExp()

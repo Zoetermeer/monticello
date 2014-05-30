@@ -538,19 +538,23 @@ namespace Monticello.Parsing {
 
         }
 
+        public IdExp Name { get; set; }
         public bool IsRef { get; set; }
         public bool IsOut { get; set; }
         public Exp Exp { get; set; }
 
         public override string ToString()
         {
+            string namestr = "";
+            if (null != Name)
+                namestr = Name.Spelling.Value + ":";
             string modstr = "";
             if (IsRef)
-                modstr = " ref ";
+                modstr = "ref";
             else if (IsOut)
-                modstr = " out ";
+                modstr = "out";
 
-            return StringFormatting.SExp("arg", modstr, this.Exp);
+            return StringFormatting.SExp("arg", (object)namestr, (object)modstr, this.Exp);
         }
     }
 
@@ -660,6 +664,24 @@ namespace Monticello.Parsing {
         {
             return StringFormatting.SExp("post-decr", this.Exp);
         }
+    }
+
+
+    /// <summary>
+    /// This doubles for both new-object-creation and new-delegate-creation.
+    /// (There isn't any way to distinguish between them, other than 
+    /// to say that if the constructor takes greater than one argument or it's 
+    /// followed by an object initializer, it isn't a delegate-creation).
+    /// </summary>
+    public class NewInstanceCreationExp : Exp {
+        public NewInstanceCreationExp(Token start)
+            : base(start)
+        {
+            
+        }
+
+        public TypeNameExp Type { get; set; }
+
     }
 
 

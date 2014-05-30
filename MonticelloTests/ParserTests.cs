@@ -428,6 +428,12 @@ namespace MonticelloTests
         }
 
         [TestMethod]
+        public void TestInvocation3()
+        {
+            AssertExp("Bar(i: 1, j:x)", "(invocation (id Bar) ((arg i: (int 1)) (arg j: (id x))))");
+        }
+
+        [TestMethod]
         public void TestExpList()
         {
             var parser = new Parser("1, 2, 3");
